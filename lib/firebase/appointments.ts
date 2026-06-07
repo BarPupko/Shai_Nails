@@ -23,10 +23,19 @@ export async function getBookedSlots(
     where('status', '==', 'active')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((d) => ({
-    start: (d.data().startTime as Timestamp).toDate(),
-    end: (d.data().endTime as Timestamp).toDate(),
-  }))
+  return snapshot.docs.map((d) => {
+    const data = d.data()
+    const start = (data.startTime as Timestamp).toDate()
+    let end: Date
+    if (data.endTime) {
+      end = (data.endTime as Timestamp).toDate()
+    } else if (data.durationMinutes) {
+      end = new Date(start.getTime() + data.durationMinutes * 60 * 1000)
+    } else {
+      end = new Date(start.getTime() + 60 * 60 * 1000)
+    }
+    return { start, end }
+  })
 }
 
 export async function getUserActiveAppointment(userId: string): Promise<Appointment | null> {
