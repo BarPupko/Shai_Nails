@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "shainails"
+    "default": "shainails",
+    "shainails": "shainails"
   }
 }
