@@ -1,0 +1,22 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /appointments/{appointmentId} {
+      // Any authenticated user can read all appointments (needed to show booked slots on calendar)
+      allow read: if request.auth != null;
+
+      // A user can only create an appointment for themselves
+      allow create: if request.auth != null
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'active';
+
+      // Owner can cancel their own; admin can cancel anyone's
+      allow update: if request.auth != null
+        && (
+          resource.data.userId == request.auth.uid
+          || request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+        )
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+  }
+}
