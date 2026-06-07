@@ -10,8 +10,8 @@ const rubik = Rubik({
 })
 
 export const metadata: Metadata = {
-  title: 'שי ניילס — קביעת תור',
-  description: 'קביעת תור מקצועית לטיפוח ציפורניים בשי ניילס.',
+  title: 'שי גבאי — קביעת תור',
+  description: 'קביעת תור מקצועית לטיפוח ציפורניים בשי גבאי.',
   icons: {
     icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💅</text></svg>",
   },

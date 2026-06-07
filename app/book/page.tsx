@@ -100,7 +100,7 @@ function BookPageContent() {
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2">
             <span className="text-xl">💅</span>
-            <span className="font-bold text-[#1d1d1f]">שי ניילס</span>
+            <span className="font-bold text-[#1d1d1f]">שי גבאי</span>
           </Link>
           {user && (
             <button

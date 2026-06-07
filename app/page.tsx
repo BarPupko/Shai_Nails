@@ -48,7 +48,7 @@ export default function Home() {
             >
               <span className="text-4xl">💅</span>
             </button>
-            <h1 className="text-3xl font-bold text-[#1d1d1f] tracking-tight">שי ניילס</h1>
+            <h1 className="text-3xl font-bold text-[#1d1d1f] tracking-tight">שי גבאי</h1>
             <p className="text-[#6e6e73] text-sm mt-1">טיפוח ציפורניים מקצועי</p>
           </div>
 

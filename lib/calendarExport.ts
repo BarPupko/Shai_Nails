@@ -18,7 +18,7 @@ export function generateBulkICS(events: CalendarEvent[]): string {
       `UID:shai-nails-${ev.startTime.getTime()}@shainails.com`,
       `DTSTART:${toICSDate(ev.startTime)}`,
       `DTEND:${toICSDate(ev.endTime)}`,
-      `SUMMARY:${ev.name} – שי ניילס`,
+      `SUMMARY:${ev.name} – שי גבאי`,
       `DTSTAMP:${toICSDate(new Date())}`,
       'END:VEVENT'
     )

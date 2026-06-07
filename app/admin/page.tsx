@@ -66,7 +66,7 @@ export default function AdminPage() {
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span className="text-xl">💅</span>
-            <span className="font-bold text-[#1d1d1f]">שי ניילס</span>
+            <span className="font-bold text-[#1d1d1f]">שי גבאי</span>
             <span className="text-xs bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full mr-1">
               ניהול
             </span>
