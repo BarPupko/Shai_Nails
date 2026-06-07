@@ -9,28 +9,45 @@ interface BookingSuccessProps {
   startTime: Date
   endTime: Date
   name: string
+  serviceName?: string
+  servicePrice?: number | null
+  servicePriceNote?: string
   onBookAnother?: () => void
 }
 
-export function BookingSuccess({ startTime, endTime, name, onBookAnother }: BookingSuccessProps) {
+export function BookingSuccess({
+  startTime,
+  endTime,
+  name,
+  serviceName,
+  servicePrice,
+  servicePriceNote,
+  onBookAnother,
+}: BookingSuccessProps) {
   return (
     <div className="space-y-4">
-      {/* Success card */}
       <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-8 text-center">
         <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-green-400 to-emerald-500 flex items-center justify-center text-4xl mx-auto mb-5 shadow-lg shadow-emerald-100">
           ✓
         </div>
         <h2 className="text-2xl font-bold text-[#1d1d1f] mb-1">התור אושר בהצלחה! 🎉</h2>
         <p className="text-rose-500 font-semibold text-base mb-1">{name}</p>
+        {serviceName && (
+          <p className="text-[#1d1d1f] font-medium text-sm mb-1">{serviceName}</p>
+        )}
         <p className="text-[#6e6e73] text-sm mb-1">
           {format(startTime, 'EEEE, d בMMMM yyyy', { locale: he })}
         </p>
         <p className="text-rose-600 font-bold text-xl" dir="ltr">
           {format(startTime, 'HH:mm')} — {format(endTime, 'HH:mm')}
         </p>
+        {servicePrice != null ? (
+          <p className="text-emerald-600 font-semibold mt-1">₪{servicePrice}</p>
+        ) : servicePriceNote ? (
+          <p className="text-[#6e6e73] text-sm mt-1">{servicePriceNote}</p>
+        ) : null}
       </div>
 
-      {/* Calendar add section */}
       <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
         <p className="text-sm font-semibold text-[#6e6e73] text-center mb-4">
           הוסיפי לי ליומן שלך

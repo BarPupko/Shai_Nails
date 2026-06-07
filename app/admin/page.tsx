@@ -5,9 +5,11 @@ import { useRouter } from 'next/navigation'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 import { useAuthStore } from '@/lib/store/authStore'
-import { AppointmentList } from '@/components/admin/AppointmentList'
+import { ScheduleView } from '@/components/admin/ScheduleView'
 import { RevenueTab } from '@/components/admin/RevenueTab'
 import { ClientsTab } from '@/components/admin/ClientsTab'
+import { ServicesTab } from '@/components/admin/ServicesTab'
+import { AvailabilityTab } from '@/components/admin/AvailabilityTab'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ADMIN_UIDS } from '@/lib/constants'
 import { getAllAppointmentsAdmin } from '@/lib/firebase/appointments'
@@ -50,9 +52,16 @@ export default function AdminPage() {
 
   if (!isAdmin) return null
 
+  const skeleton3 = (
+    <div className="space-y-3">
+      {Array.from({ length: 3 }).map((_, i) => (
+        <div key={i} className="h-24 rounded-3xl bg-white animate-pulse shadow-sm" />
+      ))}
+    </div>
+  )
+
   return (
     <main className="min-h-screen bg-[#f5f5f7]">
-      {/* Header */}
       <header className="bg-white/80 backdrop-blur-md border-b border-[#f0f0f0] sticky top-0 z-20">
         <div className="max-w-3xl mx-auto px-4 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -81,49 +90,49 @@ export default function AdminPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="appointments" dir="rtl">
-          <TabsList className="w-full bg-white rounded-2xl shadow-sm border border-[#f0f0f0] p-1 mb-5 h-12">
-            <TabsTrigger value="appointments" className="flex-1 rounded-xl text-sm font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
-              📅 תורים
+        <Tabs defaultValue="schedule" dir="rtl">
+          <TabsList className="w-full bg-white rounded-2xl shadow-sm border border-[#f0f0f0] p-1 mb-5 h-12 grid grid-cols-5">
+            <TabsTrigger value="schedule" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+              📅 לוח
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="flex-1 rounded-xl text-sm font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="revenue" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
               💰 הכנסות
             </TabsTrigger>
-            <TabsTrigger value="clients" className="flex-1 rounded-xl text-sm font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="clients" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
               👥 לקוחות
+            </TabsTrigger>
+            <TabsTrigger value="services" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+              💅 שירותים
+            </TabsTrigger>
+            <TabsTrigger value="availability" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+              🗓 זמינות
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="appointments">
-            {dataLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-24 rounded-3xl bg-white animate-pulse shadow-sm" />
-                ))}
-              </div>
-            ) : (
-              <AppointmentList appointments={appointments} onRefresh={fetchAll} />
+          <TabsContent value="schedule">
+            {dataLoading ? skeleton3 : (
+              <ScheduleView appointments={appointments} onRefresh={fetchAll} />
             )}
           </TabsContent>
 
           <TabsContent value="revenue">
-            {dataLoading ? (
-              <div className="h-40 rounded-3xl bg-white animate-pulse shadow-sm" />
-            ) : (
+            {dataLoading ? <div className="h-40 rounded-3xl bg-white animate-pulse shadow-sm" /> : (
               <RevenueTab appointments={appointments} />
             )}
           </TabsContent>
 
           <TabsContent value="clients">
-            {dataLoading ? (
-              <div className="space-y-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="h-20 rounded-3xl bg-white animate-pulse shadow-sm" />
-                ))}
-              </div>
-            ) : (
+            {dataLoading ? skeleton3 : (
               <ClientsTab appointments={appointments} />
             )}
+          </TabsContent>
+
+          <TabsContent value="services">
+            <ServicesTab />
+          </TabsContent>
+
+          <TabsContent value="availability">
+            <AvailabilityTab />
           </TabsContent>
         </Tabs>
       </div>

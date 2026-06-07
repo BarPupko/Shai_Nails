@@ -1,6 +1,6 @@
 'use client'
 
-import { format, addHours } from 'date-fns'
+import { format } from 'date-fns'
 import { he } from 'date-fns/locale'
 import {
   Dialog,
@@ -11,11 +11,14 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { formatDuration } from '@/lib/firebase/services'
+import type { Service } from '@/types'
 
 interface BookingConfirmDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   slot: Date
+  service: Service
   hasExistingAppointment: boolean
   loading: boolean
   onConfirm: () => void
@@ -25,11 +28,12 @@ export function BookingConfirmDialog({
   open,
   onOpenChange,
   slot,
+  service,
   hasExistingAppointment,
   loading,
   onConfirm,
 }: BookingConfirmDialogProps) {
-  const endTime = addHours(slot, 1)
+  const endTime = new Date(slot.getTime() + service.durationMinutes * 60 * 1000)
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,10 +48,22 @@ export function BookingConfirmDialog({
             {hasExistingAppointment ? 'לא ניתן לקבוע תור' : 'אישור תור'}
           </DialogTitle>
           {!hasExistingAppointment && (
-            <DialogDescription className="text-center text-[#1d1d1f] font-semibold text-base pt-1" dir="ltr">
-              {format(slot, 'EEEE, d בMMMM', { locale: he })}
-              <br />
-              {format(slot, 'HH:mm')} — {format(endTime, 'HH:mm')}
+            <DialogDescription asChild>
+              <div className="text-center pt-1 space-y-1">
+                <p className="text-[#1d1d1f] font-bold text-base">{service.name}</p>
+                <p className="text-[#1d1d1f] font-semibold" dir="ltr">
+                  {format(slot, 'EEEE, d בMMMM', { locale: he })}
+                </p>
+                <p className="text-[#6e6e73] text-sm" dir="ltr">
+                  {format(slot, 'HH:mm')} — {format(endTime, 'HH:mm')}
+                  {' '}({formatDuration(service.durationMinutes)})
+                </p>
+                {service.price != null ? (
+                  <p className="text-rose-600 font-semibold text-base">₪{service.price}</p>
+                ) : (
+                  <p className="text-[#6e6e73] text-sm">{service.priceNote}</p>
+                )}
+              </div>
             </DialogDescription>
           )}
         </DialogHeader>

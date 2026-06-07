@@ -7,6 +7,10 @@ export interface Appointment {
   userId: string
   phoneNumber: string
   name: string
+  serviceId?: string
+  serviceName?: string
+  durationMinutes?: number
+  price?: number | null
   startTime: Timestamp
   endTime: Timestamp
   status: AppointmentStatus
@@ -36,5 +40,16 @@ export interface BlockedDate {
   start?: number
   end?: number
   reason?: string
+  createdAt?: Timestamp
+}
+
+export interface Service {
+  id: string
+  name: string
+  durationMinutes: number
+  price: number | null   // null = variable (shown via priceNote)
+  priceNote: string      // e.g. "מחיר לפי הדוגמא"
+  isActive: boolean
+  order: number
   createdAt?: Timestamp
 }

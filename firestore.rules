@@ -1,22 +1,51 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
     match /appointments/{appointmentId} {
-      // Any authenticated user can read all appointments (needed to show booked slots on calendar)
       allow read: if request.auth != null;
 
-      // A user can only create an appointment for themselves
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'active';
 
-      // Owner can cancel their own; admin can cancel anyone's
       allow update: if request.auth != null
         && (
           resource.data.userId == request.auth.uid
           || request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
         )
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
+    }
+
+    // Services — anyone authenticated can read; only admins can write
+    match /services/{serviceId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && (
+          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+        );
+    }
+
+    // Weekly schedule — anyone authenticated can read; only admins can write
+    match /settings/{docId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && (
+          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+        );
+    }
+
+    // Date overrides — anyone authenticated can read; only admins can write/delete
+    match /blockedDates/{dateId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null
+        && (
+          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+        );
     }
   }
 }

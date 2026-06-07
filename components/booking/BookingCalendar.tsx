@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { format, addHours } from 'date-fns'
+import { format, isBefore, startOfDay, addMonths } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { Timestamp } from 'firebase/firestore'
 import { Calendar } from '@/components/ui/calendar'
@@ -15,32 +15,57 @@ import {
   createAppointment,
   cancelAppointment,
 } from '@/lib/firebase/appointments'
+import {
+  getWeeklySchedule,
+  getBlockedDatesForRange,
+  getEffectiveHours,
+} from '@/lib/firebase/availability'
 import { useAuthStore } from '@/lib/store/authStore'
-import type { Appointment } from '@/types'
+import type { Appointment, Service, WeeklySchedule, BlockedDate } from '@/types'
 
 interface BookingCalendarProps {
   userName: string
+  service: Service
 }
 
-export function BookingCalendar({ userName }: BookingCalendarProps) {
+export function BookingCalendar({ userName, service }: BookingCalendarProps) {
   const user = useAuthStore((s) => s.user)
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
-  const [bookedSlots, setBookedSlots] = useState<Date[]>([])
+  const [bookedRanges, setBookedRanges] = useState<{ start: Date; end: Date }[]>([])
   const [selectedSlot, setSelectedSlot] = useState<Date | null>(null)
   const [existingAppointment, setExistingAppointment] = useState<Appointment | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [bookingLoading, setBookingLoading] = useState(false)
   const [cancelLoading, setCancelLoading] = useState(false)
-  const [bookedResult, setBookedResult] = useState<{ startTime: Date; endTime: Date; name: string } | null>(null)
+  const [bookedResult, setBookedResult] = useState<{
+    startTime: Date; endTime: Date; name: string
+    serviceName: string; servicePrice: number | null; servicePriceNote: string
+  } | null>(null)
   const [slotsLoading, setSlotsLoading] = useState(false)
+
+  const [weeklySchedule, setWeeklySchedule] = useState<WeeklySchedule | null>(null)
+  const [blockedDates, setBlockedDates] = useState<BlockedDate[]>([])
+  const [availLoading, setAvailLoading] = useState(true)
+
+  useEffect(() => {
+    const today = new Date()
+    Promise.all([
+      getWeeklySchedule(),
+      getBlockedDatesForRange(today, addMonths(today, 6)),
+    ]).then(([schedule, blocked]) => {
+      setWeeklySchedule(schedule)
+      setBlockedDates(blocked)
+      setAvailLoading(false)
+    })
+  }, [])
 
   const fetchSlots = useCallback(async (date: Date) => {
     setSlotsLoading(true)
     const start = new Date(date); start.setHours(0, 0, 0, 0)
     const end = new Date(date); end.setHours(23, 59, 59, 999)
     try {
-      setBookedSlots(await getBookedSlots(start, end))
+      setBookedRanges(await getBookedSlots(start, end))
     } finally {
       setSlotsLoading(false)
     }
@@ -58,8 +83,21 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
     if (!user || !selectedSlot) return
     setBookingLoading(true)
     try {
-      await createAppointment(user.uid, user.phoneNumber ?? '', userName, selectedSlot)
-      setBookedResult({ startTime: selectedSlot, endTime: addHours(selectedSlot, 1), name: userName })
+      await createAppointment(user.uid, user.phoneNumber ?? '', userName, selectedSlot, {
+        id: service.id,
+        name: service.name,
+        durationMinutes: service.durationMinutes,
+        price: service.price,
+      })
+      const endTime = new Date(selectedSlot.getTime() + service.durationMinutes * 60 * 1000)
+      setBookedResult({
+        startTime: selectedSlot,
+        endTime,
+        name: userName,
+        serviceName: service.name,
+        servicePrice: service.price,
+        servicePriceNote: service.priceNote,
+      })
       setConfirmOpen(false)
       await Promise.all([fetchExisting(), fetchSlots(selectedDate)])
     } catch (err: unknown) {
@@ -88,14 +126,29 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
         startTime={bookedResult.startTime}
         endTime={bookedResult.endTime}
         name={bookedResult.name}
+        serviceName={bookedResult.serviceName}
+        servicePrice={bookedResult.servicePrice}
+        servicePriceNote={bookedResult.servicePriceNote}
         onBookAnother={() => setBookedResult(null)}
       />
     )
   }
 
+  const effectiveHours =
+    !availLoading && weeklySchedule
+      ? getEffectiveHours(selectedDate, weeklySchedule, blockedDates)
+      : undefined
+
+  function isDateDisabled(date: Date): boolean {
+    if (isBefore(startOfDay(date), startOfDay(new Date()))) return true
+    if (weeklySchedule) {
+      return getEffectiveHours(date, weeklySchedule, blockedDates) === null
+    }
+    return false
+  }
+
   return (
     <div className="space-y-4">
-      {/* Existing appointment banner */}
       {existingAppointment && (
         <div className="bg-white rounded-3xl shadow-sm border border-amber-100 p-5">
           <div className="flex items-start gap-3">
@@ -111,6 +164,9 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
                   { locale: he }
                 )}
               </p>
+              {existingAppointment.serviceName && (
+                <p className="text-[#6e6e73] text-xs mt-0.5">{existingAppointment.serviceName}</p>
+              )}
               <Button
                 variant="ghost"
                 size="sm"
@@ -125,7 +181,6 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
         </div>
       )}
 
-      {/* Date picker */}
       <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] overflow-hidden">
         <div className="px-5 pt-5 pb-2">
           <h2 className="text-base font-semibold text-[#1d1d1f]">בחרי תאריך</h2>
@@ -135,25 +190,19 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
             mode="single"
             selected={selectedDate}
             onSelect={(date) => date && setSelectedDate(date)}
-            disabled={(date) => {
-              const today = new Date(); today.setHours(0, 0, 0, 0)
-              return date < today
-            }}
+            disabled={isDateDisabled}
             className="w-full"
           />
         </div>
       </div>
 
-      {/* Time slots */}
       <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
-        <h2 className="text-base font-semibold text-[#1d1d1f] mb-1">
-          שעות פנויות
-        </h2>
+        <h2 className="text-base font-semibold text-[#1d1d1f] mb-1">שעות פנויות</h2>
         <p className="text-sm text-[#6e6e73] mb-4">
           {format(selectedDate, 'EEEE, d בMMMM', { locale: he })}
         </p>
 
-        {slotsLoading ? (
+        {availLoading || slotsLoading ? (
           <div className="grid grid-cols-3 gap-2.5">
             {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="h-12 rounded-2xl bg-[#f5f5f7] animate-pulse" />
@@ -162,7 +211,9 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
         ) : (
           <TimeSlotGrid
             selectedDate={selectedDate}
-            bookedSlots={bookedSlots}
+            bookedRanges={bookedRanges}
+            effectiveHours={effectiveHours ?? null}
+            serviceMinutes={service.durationMinutes}
             onSelectSlot={(slot) => { setSelectedSlot(slot); setConfirmOpen(true) }}
           />
         )}
@@ -173,6 +224,7 @@ export function BookingCalendar({ userName }: BookingCalendarProps) {
           open={confirmOpen}
           onOpenChange={setConfirmOpen}
           slot={selectedSlot}
+          service={service}
           hasExistingAppointment={!!existingAppointment}
           loading={bookingLoading}
           onConfirm={handleConfirmBooking}

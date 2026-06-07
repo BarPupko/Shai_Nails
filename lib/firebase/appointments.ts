@@ -12,7 +12,10 @@ import {
 } from 'firebase/firestore'
 import type { Appointment } from '@/types'
 
-export async function getBookedSlots(startOfDay: Date, endOfDay: Date): Promise<Date[]> {
+export async function getBookedSlots(
+  startOfDay: Date,
+  endOfDay: Date
+): Promise<{ start: Date; end: Date }[]> {
   const q = query(
     collection(db, 'appointments'),
     where('startTime', '>=', Timestamp.fromDate(startOfDay)),
@@ -20,7 +23,10 @@ export async function getBookedSlots(startOfDay: Date, endOfDay: Date): Promise<
     where('status', '==', 'active')
   )
   const snapshot = await getDocs(q)
-  return snapshot.docs.map((d) => (d.data().startTime as Timestamp).toDate())
+  return snapshot.docs.map((d) => ({
+    start: (d.data().startTime as Timestamp).toDate(),
+    end: (d.data().endTime as Timestamp).toDate(),
+  }))
 }
 
 export async function getUserActiveAppointment(userId: string): Promise<Appointment | null> {
@@ -41,16 +47,21 @@ export async function createAppointment(
   userId: string,
   phoneNumber: string,
   name: string,
-  startTime: Date
+  startTime: Date,
+  service: { id: string; name: string; durationMinutes: number; price: number | null }
 ): Promise<string> {
   const existing = await getUserActiveAppointment(userId)
   if (existing) throw new Error('EXISTING_APPOINTMENT')
 
-  const endTime = new Date(startTime.getTime() + 60 * 60 * 1000)
+  const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000)
   const docRef = await addDoc(collection(db, 'appointments'), {
     userId,
     phoneNumber,
     name,
+    serviceId: service.id,
+    serviceName: service.name,
+    durationMinutes: service.durationMinutes,
+    price: service.price,
     startTime: Timestamp.fromDate(startTime),
     endTime: Timestamp.fromDate(endTime),
     status: 'active',
@@ -76,10 +87,7 @@ export async function getAllUpcomingAppointments(): Promise<Appointment[]> {
 }
 
 export async function getAllAppointmentsAdmin(): Promise<Appointment[]> {
-  const q = query(
-    collection(db, 'appointments'),
-    orderBy('startTime', 'desc')
-  )
+  const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'))
   const snapshot = await getDocs(q)
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment))
 }
