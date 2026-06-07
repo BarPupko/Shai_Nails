@@ -14,6 +14,7 @@ service cloud.firestore {
           resource.data.userId == request.auth.uid
           || request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
           || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
         )
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
@@ -25,6 +26,7 @@ service cloud.firestore {
         && (
           request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
           || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
         );
     }
 
@@ -35,6 +37,7 @@ service cloud.firestore {
         && (
           request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
           || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
         );
     }
 
@@ -45,6 +48,7 @@ service cloud.firestore {
         && (
           request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
           || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
+          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
         );
     }
   }
