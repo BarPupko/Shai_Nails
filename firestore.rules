@@ -2,54 +2,39 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in [
+        "GL5yI9uYdJUReqLczdO0RWVIkdk1",
+        "xgEpG6IVB9TtBoTU3KIavIrfHSA3",
+        "znbtJJzpq8huSgDG5S5D24iKqYl1",
+        "Ha28aVcdNrV1C4kNg2rj64WS8yg1",
+        "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+      ];
+    }
+
     match /appointments/{appointmentId} {
       allow read: if request.auth != null;
-
       allow create: if request.auth != null
         && request.resource.data.userId == request.auth.uid
         && request.resource.data.status == 'active';
-
       allow update: if request.auth != null
-        && (
-          resource.data.userId == request.auth.uid
-          || request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
-          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
-          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
-        )
+        && (resource.data.userId == request.auth.uid || isAdmin())
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']);
     }
 
-    // Services — anyone authenticated can read; only admins can write
     match /services/{serviceId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && (
-          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
-          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
-          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
-        );
+      allow write: if isAdmin();
     }
 
-    // Weekly schedule — anyone authenticated can read; only admins can write
     match /settings/{docId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && (
-          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
-          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
-          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
-        );
+      allow write: if isAdmin();
     }
 
-    // Date overrides — anyone authenticated can read; only admins can write/delete
     match /blockedDates/{dateId} {
       allow read: if request.auth != null;
-      allow write: if request.auth != null
-        && (
-          request.auth.uid == "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
-          || request.auth.uid == "xgEpG6IVB9TtBoTU3KIavIrfHSA3"
-          || request.auth.uid == "znbtJJzpq8huSgDG5S5D24iKqYl1"
-        );
+      allow write: if isAdmin();
     }
   }
 }
