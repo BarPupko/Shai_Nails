@@ -12,7 +12,7 @@ interface PhoneAuthFormProps {
 }
 
 export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
-  const [phone, setPhone] = useState('+972')
+  const [phone, setPhone] = useState('')
   const [otp, setOtp] = useState('')
   const [step, setStep] = useState<'phone' | 'otp'>('phone')
   const [loading, setLoading] = useState(false)
@@ -36,17 +36,18 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     if (!recaptchaRef.current) return
     setError('')
     setLoading(true)
+    const e164 = '+972' + phone.replace(/^0/, '')
     try {
-      confirmationRef.current = await signInWithPhoneNumber(auth, phone, recaptchaRef.current)
+      confirmationRef.current = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
       setStep('otp')
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : ''
       if (msg.includes('billing-not-enabled')) {
         setError('שירות ה-SMS אינו מופעל. יש להפעיל חיוב בפרויקט Firebase.')
       } else if (msg.includes('invalid-phone-number')) {
-        setError('מספר טלפון לא תקין. נסה שוב עם קידומת מדינה.')
+        setError('מספר טלפון לא תקין. בדקי שהמספר בפורמט 05XXXXXXXX.')
       } else {
-        setError('שליחת הקוד נכשלה. בדוק את מספר הטלפון ונסה שוב.')
+        setError('שליחת הקוד נכשלה. בדקי את מספר הטלפון ונסי שוב.')
       }
       recaptchaRef.current?.clear()
       recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
@@ -91,17 +92,15 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             <Input
               id="phone"
               type="tel"
-              inputMode="tel"
-              placeholder="+972501234567"
+              inputMode="numeric"
+              placeholder="0501112223"
               value={phone}
-              onChange={(e) => setPhone(e.target.value)}
+              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
               required
-              className="h-12 text-base rounded-xl border-[#e5e5e5] bg-[#f5f5f7] focus:bg-white transition-colors text-left dir-ltr"
+              maxLength={10}
+              className="h-12 text-base rounded-xl border-[#e5e5e5] bg-[#f5f5f7] focus:bg-white transition-colors text-left"
               dir="ltr"
             />
-            <p className="text-xs text-[#6e6e73]">
-              כולל קידומת מדינה — למשל: +972 לישראל
-            </p>
           </div>
 
           {error && (
@@ -113,7 +112,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
           <Button
             type="submit"
             className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200 font-semibold"
-            disabled={loading || phone.length < 10}
+            disabled={loading || phone.length < 9}
           >
             {loading ? 'שולח קוד…' : 'שליחת קוד אימות'}
           </Button>
@@ -126,7 +125,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             </div>
             <h2 className="text-xl font-bold text-[#1d1d1f]">הזיני את הקוד</h2>
             <p className="text-sm text-[#6e6e73] mt-1">
-              קוד נשלח ל-<span className="font-medium text-[#1d1d1f]" dir="ltr">{phone}</span>
+              קוד נשלח למספר <span className="font-medium text-[#1d1d1f]" dir="ltr">{phone}</span>
             </p>
           </div>
 
