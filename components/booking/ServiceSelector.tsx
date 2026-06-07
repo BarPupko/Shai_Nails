@@ -13,10 +13,12 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    getServices().then((s) => {
-      setServices(s.filter((svc) => svc.isActive))
-      setLoading(false)
-    })
+    getServices()
+      .then((s) => {
+        setServices(s.filter((svc) => svc.isActive))
+        setLoading(false)
+      })
+      .catch(() => setLoading(false))
   }, [])
 
   if (loading) {
@@ -25,6 +27,16 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="h-20 rounded-3xl bg-white animate-pulse shadow-sm" />
         ))}
+      </div>
+    )
+  }
+
+  if (services.length === 0) {
+    return (
+      <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] py-16 text-center px-6">
+        <p className="text-4xl mb-3">💅</p>
+        <p className="font-semibold text-[#1d1d1f]">השירותים יתווספו בקרוב</p>
+        <p className="text-sm text-[#6e6e73] mt-2">אנא נסי שוב מאוחר יותר</p>
       </div>
     )
   }

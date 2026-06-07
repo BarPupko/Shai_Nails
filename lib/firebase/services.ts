@@ -14,7 +14,7 @@ import type { Service } from '@/types'
 
 type ServiceInput = Omit<Service, 'id' | 'createdAt'>
 
-const DEFAULT_SERVICES: ServiceInput[] = [
+export const DEFAULT_SERVICES: ServiceInput[] = [
   { name: 'לק גל רגיל/פרנץ', durationMinutes: 90, price: 120, priceNote: '', isActive: true, order: 1 },
   { name: 'לק גל + דוגמא', durationMinutes: 120, price: null, priceNote: 'מחיר לפי הדוגמא', isActive: true, order: 2 },
   { name: 'בנייה חדשה בגל', durationMinutes: 150, price: 300, priceNote: '', isActive: true, order: 3 },
@@ -24,16 +24,17 @@ const DEFAULT_SERVICES: ServiceInput[] = [
   { name: 'השלמה', durationMinutes: 30, price: null, priceNote: '₪10 לציפורן', isActive: true, order: 7 },
 ]
 
+// Read-only — no auto-seeding (regular users cannot write)
 export async function getServices(): Promise<Service[]> {
   const snap = await getDocs(query(collection(db, 'services'), orderBy('order', 'asc')))
-  if (snap.empty) {
-    await Promise.all(
-      DEFAULT_SERVICES.map((s) => addDoc(collection(db, 'services'), { ...s, createdAt: serverTimestamp() }))
-    )
-    const snap2 = await getDocs(query(collection(db, 'services'), orderBy('order', 'asc')))
-    return snap2.docs.map((d) => ({ id: d.id, ...d.data() } as Service))
-  }
   return snap.docs.map((d) => ({ id: d.id, ...d.data() } as Service))
+}
+
+// Called only from admin ServicesTab when collection is empty
+export async function seedDefaultServices(): Promise<void> {
+  await Promise.all(
+    DEFAULT_SERVICES.map((s) => addDoc(collection(db, 'services'), { ...s, createdAt: serverTimestamp() }))
+  )
 }
 
 export async function addService(service: ServiceInput): Promise<string> {

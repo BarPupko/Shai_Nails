@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getServices, addService, updateService, deleteService, formatDuration } from '@/lib/firebase/services'
+import { getServices, addService, updateService, deleteService, formatDuration, seedDefaultServices } from '@/lib/firebase/services'
 import type { Service } from '@/types'
 
 type EditState = {
@@ -31,7 +31,16 @@ export function ServicesTab() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   useEffect(() => {
-    getServices().then((s) => { setServices(s); setLoading(false) })
+    getServices().then(async (s) => {
+      if (s.length === 0) {
+        await seedDefaultServices()
+        const seeded = await getServices()
+        setServices(seeded)
+      } else {
+        setServices(s)
+      }
+      setLoading(false)
+    })
   }, [])
 
   function startEdit(svc: Service) {
