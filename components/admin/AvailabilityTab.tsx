@@ -59,6 +59,9 @@ export function AvailabilityTab() {
       await saveWeeklySchedule(schedule)
       setScheduleSaved(true)
       setTimeout(() => setScheduleSaved(false), 2500)
+    } catch (err) {
+      console.error('save schedule failed', err)
+      alert('שגיאה בשמירת הלוח — בדוק הרשאות Firestore')
     } finally {
       setScheduleSaving(false)
     }
@@ -87,6 +90,9 @@ export function AvailabilityTab() {
       setBlockedDates(await getAllBlockedDates())
       setSelectedDate(undefined)
       setOverrideReason('')
+    } catch (err) {
+      console.error('add blocked date failed', err)
+      alert('שגיאה בהוספת החסימה — בדוק הרשאות Firestore')
     } finally {
       setAddingOverride(false)
     }
@@ -97,6 +103,9 @@ export function AvailabilityTab() {
     try {
       await removeBlockedDate(date)
       setBlockedDates((prev) => prev.filter((b) => b.date !== date))
+    } catch (err) {
+      console.error('remove blocked date failed', err)
+      alert('שגיאה בהסרת החסימה — בדוק הרשאות Firestore')
     } finally {
       setRemovingDate(null)
     }
