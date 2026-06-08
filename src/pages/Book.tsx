@@ -1,7 +1,5 @@
-'use client'
-
-import { useState, useEffect, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -11,12 +9,11 @@ import { ServiceSelector } from '@/components/booking/ServiceSelector'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import Link from 'next/link'
 import type { Service } from '@/types'
 
-function BookPageContent() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
+export default function Book() {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const step = searchParams.get('step') // null | 'service' | 'calendar'
 
   const user = useAuthStore((s) => s.user)
@@ -25,7 +22,6 @@ function BookPageContent() {
   const [nameConfirmed, setNameConfirmed] = useState(false)
   const [selectedService, setSelectedService] = useState<Service | null>(null)
 
-  // Restore saved name from localStorage when user logs in
   useEffect(() => {
     if (user) {
       const saved = localStorage.getItem(`shai-name-${user.uid}`)
@@ -36,36 +32,34 @@ function BookPageContent() {
     }
   }, [user])
 
-  // Once name is confirmed and we're at the root step, move to service selection
   useEffect(() => {
     if (user && nameConfirmed && !step) {
-      router.replace('/book?step=service')
+      navigate('/book?step=service', { replace: true })
     }
-  }, [user, nameConfirmed, step, router])
+  }, [user, nameConfirmed, step, navigate])
 
-  // Restore selected service from sessionStorage on calendar step
   useEffect(() => {
     if (step === 'calendar' && !selectedService) {
       const saved = sessionStorage.getItem('shai-selected-service')
       if (saved) {
         setSelectedService(JSON.parse(saved))
       } else {
-        router.replace('/book?step=service')
+        navigate('/book?step=service', { replace: true })
       }
     }
-  }, [step, selectedService, router])
+  }, [step, selectedService, navigate])
 
   function handleNameConfirm() {
     if (!name.trim() || !user) return
     localStorage.setItem(`shai-name-${user.uid}`, name.trim())
     setNameConfirmed(true)
-    router.push('/book?step=service')
+    navigate('/book?step=service')
   }
 
   function handleServiceSelect(svc: Service) {
     setSelectedService(svc)
     sessionStorage.setItem('shai-selected-service', JSON.stringify(svc))
-    router.push('/book?step=calendar')
+    navigate('/book?step=calendar')
   }
 
   function handleSignOut() {
@@ -75,7 +69,7 @@ function BookPageContent() {
     setName('')
     setNameConfirmed(false)
     setSelectedService(null)
-    router.replace('/book')
+    navigate('/book', { replace: true })
   }
 
   if (loading) {
@@ -98,7 +92,7 @@ function BookPageContent() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <header className="bg-white/80 backdrop-blur-md border-b border-[#f0f0f0] sticky top-0 z-20">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2">
             <span className="text-xl">💅</span>
             <span className="font-bold text-[#1d1d1f]">שי גבאי</span>
           </Link>
@@ -116,7 +110,6 @@ function BookPageContent() {
 
       <div className="max-w-lg mx-auto px-4 py-6">
 
-        {/* Step 1 — Login */}
         {showLogin && (
           <>
             <div className="text-center mb-6">
@@ -129,7 +122,6 @@ function BookPageContent() {
           </>
         )}
 
-        {/* Step 2 — Name */}
         {showName && (
           <>
             <div className="text-center mb-6">
@@ -173,7 +165,6 @@ function BookPageContent() {
           </>
         )}
 
-        {/* Step 3 — Service selection */}
         {showService && (
           <>
             <div className="flex items-center justify-between mb-5">
@@ -186,7 +177,7 @@ function BookPageContent() {
                 onClick={() => {
                   if (user) localStorage.removeItem(`shai-name-${user.uid}`)
                   setNameConfirmed(false)
-                  router.push('/book')
+                  navigate('/book')
                 }}
                 className="text-xs text-[#6e6e73] hover:text-rose-500 transition-colors"
               >
@@ -197,7 +188,6 @@ function BookPageContent() {
           </>
         )}
 
-        {/* Step 4 — Date + time */}
         {showCalendar && selectedService && (
           <>
             <div className="flex items-center justify-between mb-5">
@@ -210,7 +200,7 @@ function BookPageContent() {
                 onClick={() => {
                   setSelectedService(null)
                   sessionStorage.removeItem('shai-selected-service')
-                  router.push('/book?step=service')
+                  navigate('/book?step=service')
                 }}
                 className="text-xs text-[#6e6e73] hover:text-rose-500 transition-colors bg-[#f5f5f7] px-3 py-1.5 rounded-full"
               >
@@ -223,18 +213,5 @@ function BookPageContent() {
 
       </div>
     </main>
-  )
-}
-
-// Suspense boundary required by Next.js for useSearchParams
-export default function BookPage() {
-  return (
-    <Suspense fallback={
-      <main className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 animate-pulse" />
-      </main>
-    }>
-      <BookPageContent />
-    </Suspense>
   )
 }

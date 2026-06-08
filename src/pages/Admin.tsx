@@ -1,7 +1,5 @@
-'use client'
-
 import { useEffect, useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -16,10 +14,10 @@ import { getAllAppointmentsAdmin } from '@/lib/firebase/appointments'
 import { Button } from '@/components/ui/button'
 import type { Appointment } from '@/types'
 
-export default function AdminPage() {
+export default function Admin() {
   const user = useAuthStore((s) => s.user)
   const loading = useAuthStore((s) => s.loading)
-  const router = useRouter()
+  const navigate = useNavigate()
   const isAdmin = !!user && ADMIN_UIDS.includes(user.uid)
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -35,8 +33,8 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) router.replace('/')
-  }, [user, loading, isAdmin, router])
+    if (!loading && (!user || !isAdmin)) navigate('/', { replace: true })
+  }, [user, loading, isAdmin, navigate])
 
   useEffect(() => {
     if (isAdmin) fetchAll()
