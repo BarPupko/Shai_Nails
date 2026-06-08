@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult } from 'firebase/auth'
+import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, initializeRecaptchaConfig } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -61,6 +61,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
   async function sendOTP(): Promise<boolean> {
     const e164 = '+972' + phone.replace(/^0/, '')
     try {
+      await initializeRecaptchaConfig(auth)
       if (!recaptchaRef.current) {
         recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
       }
