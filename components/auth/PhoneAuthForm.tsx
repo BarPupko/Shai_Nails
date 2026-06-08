@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
+const RESEND_SECONDS = 120
+
 interface PhoneAuthFormProps {
   onSuccess?: () => void
 }
@@ -18,6 +20,12 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
+  // Resend state
+  const [countdown, setCountdown] = useState(0)
+  const [resendUsed, setResendUsed] = useState(false)
+  const [resendLoading, setResendLoading] = useState(false)
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const confirmationRef = useRef<ConfirmationResult | null>(null)
@@ -26,8 +34,23 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     return () => {
       try { recaptchaRef.current?.clear() } catch (_) {}
       recaptchaRef.current = null
+      if (countdownRef.current) clearInterval(countdownRef.current)
     }
   }, [])
+
+  function startCountdown() {
+    setCountdown(RESEND_SECONDS)
+    if (countdownRef.current) clearInterval(countdownRef.current)
+    countdownRef.current = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!)
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
 
   function resetRecaptcha() {
     try { recaptchaRef.current?.clear() } catch (_) {}
@@ -35,17 +58,14 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     if (containerRef.current) containerRef.current.innerHTML = ''
   }
 
-  async function handleSendOTP(e: React.FormEvent) {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
+  async function sendOTP(): Promise<boolean> {
     const e164 = '+972' + phone.replace(/^0/, '')
     try {
       if (!recaptchaRef.current) {
         recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
       }
       confirmationRef.current = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
-      setStep('otp')
+      return true
     } catch (err: unknown) {
       resetRecaptcha()
       const msg = err instanceof Error ? err.message : ''
@@ -58,8 +78,32 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
       } else {
         setError('שליחת הקוד נכשלה. בדקי את מספר הטלפון ונסי שוב.')
       }
-    } finally {
-      setLoading(false)
+      return false
+    }
+  }
+
+  async function handleSendOTP(e: React.FormEvent) {
+    e.preventDefault()
+    setError('')
+    setLoading(true)
+    const ok = await sendOTP()
+    setLoading(false)
+    if (ok) {
+      setStep('otp')
+      setResendUsed(false)
+      startCountdown()
+    }
+  }
+
+  async function handleResend() {
+    setError('')
+    setResendLoading(true)
+    resetRecaptcha()
+    const ok = await sendOTP()
+    setResendLoading(false)
+    if (ok) {
+      setResendUsed(true)
+      setCountdown(0)
     }
   }
 
@@ -76,6 +120,12 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     } finally {
       setLoading(false)
     }
+  }
+
+  function formatCountdown(s: number) {
+    const m = Math.floor(s / 60)
+    const sec = s % 60
+    return `${m}:${String(sec).padStart(2, '0')}`
   }
 
   return (
@@ -154,6 +204,29 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             />
           </div>
 
+          {/* Resend section */}
+          <div className="text-center">
+            {resendUsed ? (
+              <p className="text-xs text-[#c7c7cc]">הודעה נשלחה שוב — בדקי את הטלפון</p>
+            ) : countdown > 0 ? (
+              <p className="text-sm text-[#6e6e73]">
+                לא קיבלת? שלחי שוב בעוד{' '}
+                <span className="font-semibold tabular-nums text-[#1d1d1f]" dir="ltr">
+                  {formatCountdown(countdown)}
+                </span>
+              </p>
+            ) : (
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading}
+                className="text-sm font-medium text-rose-500 hover:text-rose-600 transition-colors disabled:opacity-50"
+              >
+                {resendLoading ? 'שולח…' : 'לא קיבלת קוד? שלחי שוב'}
+              </button>
+            )}
+          </div>
+
           {error && (
             <div className="bg-red-50 border border-red-100 rounded-xl px-4 py-3 text-sm text-red-700">
               {error}
@@ -171,7 +244,14 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
           <button
             type="button"
             className="w-full text-sm text-[#6e6e73] hover:text-[#1d1d1f] transition-colors py-2"
-            onClick={() => { setStep('phone'); setOtp(''); setError('') }}
+            onClick={() => {
+              setStep('phone')
+              setOtp('')
+              setError('')
+              setCountdown(0)
+              setResendUsed(false)
+              if (countdownRef.current) clearInterval(countdownRef.current)
+            }}
           >
             ← חזרה למספר טלפון
           </button>
