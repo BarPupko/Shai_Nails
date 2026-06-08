@@ -19,38 +19,45 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
   const [error, setError] = useState('')
 
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const confirmationRef = useRef<ConfirmationResult | null>(null)
 
   useEffect(() => {
-    recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', {
-      size: 'invisible',
-    })
     return () => {
-      recaptchaRef.current?.clear()
+      try { recaptchaRef.current?.clear() } catch (_) {}
       recaptchaRef.current = null
     }
   }, [])
 
+  function resetRecaptcha() {
+    try { recaptchaRef.current?.clear() } catch (_) {}
+    recaptchaRef.current = null
+    if (containerRef.current) containerRef.current.innerHTML = ''
+  }
+
   async function handleSendOTP(e: React.FormEvent) {
     e.preventDefault()
-    if (!recaptchaRef.current) return
     setError('')
     setLoading(true)
     const e164 = '+972' + phone.replace(/^0/, '')
     try {
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
+      }
       confirmationRef.current = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
       setStep('otp')
     } catch (err: unknown) {
+      resetRecaptcha()
       const msg = err instanceof Error ? err.message : ''
       if (msg.includes('billing-not-enabled')) {
         setError('שירות ה-SMS אינו מופעל. יש להפעיל חיוב בפרויקט Firebase.')
       } else if (msg.includes('invalid-phone-number')) {
         setError('מספר טלפון לא תקין. בדקי שהמספר בפורמט 05XXXXXXXX.')
+      } else if (msg.includes('too-many-requests')) {
+        setError('מספר זה נחסם זמנית עקב ניסיונות רבים. נסי שוב מאוחר יותר.')
       } else {
         setError('שליחת הקוד נכשלה. בדקי את מספר הטלפון ונסי שוב.')
       }
-      recaptchaRef.current?.clear()
-      recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
     } finally {
       setLoading(false)
     }
@@ -73,7 +80,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
   return (
     <div className="space-y-6">
-      <div id="recaptcha-container" />
+      <div id="recaptcha-container" ref={containerRef} />
 
       {step === 'phone' ? (
         <form onSubmit={handleSendOTP} className="space-y-5">
