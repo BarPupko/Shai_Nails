@@ -78,6 +78,9 @@ export function ServicesTab() {
       }
       setServices(await getServices())
       setEditingId(null)
+    } catch (err) {
+      console.error('save failed', err)
+      alert('שגיאה בשמירת השירות — בדוק הרשאות Firestore')
     } finally {
       setSaving(false)
     }
@@ -88,14 +91,24 @@ export function ServicesTab() {
     try {
       await deleteService(id)
       setServices((prev) => prev.filter((s) => s.id !== id))
+    } catch (err) {
+      console.error('delete failed', err)
+      alert('שגיאה במחיקת השירות — בדוק הרשאות Firestore')
     } finally {
       setDeletingId(null)
     }
   }
 
   async function handleToggleActive(svc: Service) {
-    await updateService(svc.id, { isActive: !svc.isActive })
-    setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, isActive: !s.isActive } : s))
+    const next = !svc.isActive
+    setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, isActive: next } : s))
+    try {
+      await updateService(svc.id, { isActive: next })
+    } catch (err) {
+      setServices((prev) => prev.map((s) => s.id === svc.id ? { ...s, isActive: svc.isActive } : s))
+      console.error('toggle failed', err)
+      alert('שגיאה בעדכון השירות — בדוק הרשאות Firestore')
+    }
   }
 
   if (loading) {
