@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
-const RESEND_SECONDS = 120
+const RESEND_SECONDS = 300
 
 const sendOTPFn = httpsCallable<{ phone: string }, { success: boolean }>(functions, 'sendOTP')
 const verifyOTPFn = httpsCallable<{ phone: string; code: string }, { token: string }>(functions, 'verifyOTP')

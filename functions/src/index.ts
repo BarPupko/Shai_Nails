@@ -1,4 +1,5 @@
 import { onCall, HttpsError } from 'firebase-functions/v2/https'
+import { onSchedule } from 'firebase-functions/v2/scheduler'
 import { defineSecret } from 'firebase-functions/params'
 import * as admin from 'firebase-admin'
 import twilio from 'twilio'
@@ -9,7 +10,7 @@ const db = admin.firestore()
 
 const TWILIO_ACCOUNT_SID = defineSecret('TWILIO_ACCOUNT_SID')
 const TWILIO_AUTH_TOKEN = defineSecret('TWILIO_AUTH_TOKEN')
-const TWILIO_WHATSAPP_FROM = defineSecret('TWILIO_WHATSAPP_FROM')
+const TWILIO_FROM = defineSecret('TWILIO_WHATSAPP_FROM')
 
 function normalizePhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')
@@ -23,7 +24,7 @@ function generateCode(): string {
 }
 
 export const sendOTP = onCall<{ phone: string }>(
-  { region: 'europe-west1', invoker: 'public', secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_WHATSAPP_FROM] },
+  { region: 'europe-west1', invoker: 'public', secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM] },
   async (request) => {
     const phone = request.data.phone?.trim()
     if (!phone) throw new HttpsError('invalid-argument', 'Phone required')
@@ -33,7 +34,6 @@ export const sendOTP = onCall<{ phone: string }>(
       throw new HttpsError('invalid-argument', 'Invalid Israeli mobile number')
     }
 
-    // Rate-limit: one send per 60 seconds per number
     const otpRef = db.collection('otpCodes').doc(e164)
     const existing = await otpRef.get()
     if (existing.exists) {
@@ -53,9 +53,9 @@ export const sendOTP = onCall<{ phone: string }>(
 
     const client = twilio(TWILIO_ACCOUNT_SID.value(), TWILIO_AUTH_TOKEN.value())
     await client.messages.create({
-      from: TWILIO_WHATSAPP_FROM.value(),
+      from: TWILIO_FROM.value(),
       to: e164,
-      body: `קוד האימות שלך ל-Shai Nails: ${code}\nהקוד בתוקף ל-5 דקות.`,
+      body: `ברוכה הבאה קוד האימות שלך לשי גבאי הינו: ${code}\nהקוד בתוקף ל-5 דקות.`,
     })
 
     return { success: true }
@@ -93,7 +93,6 @@ export const verifyOTP = onCall<{ phone: string; code: string }>(
       throw new HttpsError('unauthenticated', 'Invalid code')
     }
 
-    // Code is valid — clean up and create/fetch user
     await otpRef.delete()
 
     let uid: string
@@ -107,5 +106,52 @@ export const verifyOTP = onCall<{ phone: string; code: string }>(
 
     const token = await admin.auth().createCustomToken(uid)
     return { token }
+  }
+)
+
+// Runs every day at 9:00 AM Israel time — sends reminder SMS to customers with an appointment tomorrow
+export const sendAppointmentReminders = onSchedule(
+  { schedule: '0 9 * * *', timeZone: 'Asia/Jerusalem', region: 'europe-west1', secrets: [TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM] },
+  async () => {
+    const now = new Date()
+    const tomorrowStart = new Date(now)
+    tomorrowStart.setDate(tomorrowStart.getDate() + 1)
+    tomorrowStart.setHours(0, 0, 0, 0)
+
+    const tomorrowEnd = new Date(tomorrowStart)
+    tomorrowEnd.setHours(23, 59, 59, 999)
+
+    const snapshot = await db.collection('appointments')
+      .where('status', '==', 'active')
+      .where('startTime', '>=', admin.firestore.Timestamp.fromDate(tomorrowStart))
+      .where('startTime', '<=', admin.firestore.Timestamp.fromDate(tomorrowEnd))
+      .get()
+
+    if (snapshot.empty) return
+
+    const client = twilio(TWILIO_ACCOUNT_SID.value(), TWILIO_AUTH_TOKEN.value())
+    const from = TWILIO_FROM.value()
+
+    const sends = snapshot.docs.map(async (docSnap) => {
+      const appt = docSnap.data()
+      const phone = appt.phoneNumber as string
+      const name = appt.name as string
+      const serviceName = appt.serviceName as string
+      const startTime = (appt.startTime as admin.firestore.Timestamp).toDate()
+
+      const timeStr = startTime.toLocaleTimeString('he-IL', {
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Jerusalem',
+      })
+
+      await client.messages.create({
+        from,
+        to: phone,
+        body: `שלום ${name} 💅\nתזכורת: מחר ב-${timeStr} יש לך תור אצל שי גבאי לטיפול ${serviceName}.\nמצפים לך!`,
+      })
+    })
+
+    await Promise.allSettled(sends)
   }
 )
