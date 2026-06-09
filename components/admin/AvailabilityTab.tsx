@@ -131,7 +131,7 @@ export function AvailabilityTab() {
               'h-9 rounded-xl text-xs transition-all',
               scheduleSaved
                 ? 'bg-emerald-500 hover:bg-emerald-600'
-                : 'bg-rose-500 hover:bg-rose-600',
+                : 'bg-blue-600 hover:bg-blue-700',
             ].join(' ')}
             onClick={handleSaveSchedule}
             disabled={scheduleSaving || !schedule}
@@ -289,7 +289,7 @@ export function AvailabilityTab() {
             />
 
             <Button
-              className="w-full h-11 rounded-2xl bg-rose-500 hover:bg-rose-600 font-semibold"
+              className="w-full h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 font-semibold"
               onClick={handleAddOverride}
               disabled={addingOverride}
             >

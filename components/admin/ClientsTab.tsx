@@ -61,7 +61,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
         >
           <div className="flex items-center gap-4">
             {/* Avatar */}
-            <div className="w-12 h-12 rounded-2xl bg-rose-50 flex items-center justify-center text-xl shrink-0 font-bold text-rose-400">
+            <div className="w-12 h-12 rounded-2xl bg-sky-50 flex items-center justify-center text-xl shrink-0 font-bold text-sky-400">
               {client.name.charAt(0)}
             </div>
 

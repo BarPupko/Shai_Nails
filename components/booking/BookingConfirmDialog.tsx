@@ -40,7 +40,7 @@ export function BookingConfirmDialog({
       <DialogContent className="max-w-[340px] rounded-3xl border-0 shadow-xl p-6">
         <DialogHeader className="text-right">
           <div className="flex justify-center mb-3">
-            <div className="w-14 h-14 rounded-2xl bg-rose-50 flex items-center justify-center text-3xl">
+            <div className="w-14 h-14 rounded-2xl bg-sky-50 flex items-center justify-center text-3xl">
               💅
             </div>
           </div>
@@ -59,7 +59,7 @@ export function BookingConfirmDialog({
                   {' '}({formatDuration(service.durationMinutes)})
                 </p>
                 {service.price != null ? (
-                  <p className="text-rose-600 font-semibold text-base">₪{service.price}</p>
+                  <p className="text-blue-700 font-semibold text-base">₪{service.price}</p>
                 ) : (
                   <p className="text-[#6e6e73] text-sm">{service.priceNote}</p>
                 )}
@@ -82,7 +82,7 @@ export function BookingConfirmDialog({
             <Button
               onClick={onConfirm}
               disabled={loading}
-              className="w-full h-12 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 font-semibold text-base shadow-sm"
+              className="w-full h-12 rounded-xl bg-gradient-to-r from-sky-500 to-blue-700 hover:from-sky-600 hover:to-blue-800 font-semibold text-base shadow-sm"
             >
               {loading ? 'מזמין…' : 'אישור הזמנה ✓'}
             </Button>

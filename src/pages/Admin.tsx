@@ -65,7 +65,7 @@ export default function Admin() {
           <div className="flex items-center gap-2">
             <span className="text-xl">💅</span>
             <span className="font-bold text-[#1d1d1f]">שי גבאי</span>
-            <span className="text-xs bg-rose-100 text-rose-600 font-semibold px-2 py-0.5 rounded-full mr-1">
+            <span className="text-xs bg-sky-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full mr-1">
               ניהול
             </span>
           </div>
@@ -90,19 +90,19 @@ export default function Admin() {
 
         <Tabs defaultValue="schedule" dir="rtl">
           <TabsList className="w-full bg-white rounded-2xl shadow-sm border border-[#f0f0f0] p-1 mb-5 h-12 grid grid-cols-5">
-            <TabsTrigger value="schedule" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="schedule" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               📅 לוח
             </TabsTrigger>
-            <TabsTrigger value="revenue" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="revenue" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               💰 הכנסות
             </TabsTrigger>
-            <TabsTrigger value="clients" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="clients" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               👥 לקוחות
             </TabsTrigger>
-            <TabsTrigger value="services" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="services" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               💅 שירותים
             </TabsTrigger>
-            <TabsTrigger value="availability" className="rounded-xl text-xs font-medium data-[state=active]:bg-rose-500 data-[state=active]:text-white">
+            <TabsTrigger value="availability" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               🗓 זמינות
             </TabsTrigger>
           </TabsList>

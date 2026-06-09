@@ -85,7 +85,7 @@ export function TimeSlotGrid({
                   ? 'bg-[#f5f5f7] text-[#c7c7cc] cursor-not-allowed line-through'
                   : isPast
                   ? 'bg-[#f5f5f7] text-[#d1d1d6] cursor-not-allowed'
-                  : 'bg-white border border-rose-100 text-rose-600 hover:bg-rose-50 hover:border-rose-300 active:scale-95 cursor-pointer shadow-sm',
+                  : 'bg-white border border-sky-100 text-blue-700 hover:bg-sky-50 hover:border-sky-300 active:scale-95 cursor-pointer shadow-sm',
               ].join(' ')}
             >
               {format(slot, 'HH:mm')}
@@ -96,7 +96,7 @@ export function TimeSlotGrid({
 
       <div className="flex gap-4 text-xs text-[#6e6e73] pt-1">
         <span className="flex items-center gap-1.5">
-          <span className="w-3 h-3 rounded-full bg-white border border-rose-200 inline-block shadow-sm" />
+          <span className="w-3 h-3 rounded-full bg-white border border-sky-200 inline-block shadow-sm" />
           פנוי
         </span>
         <span className="flex items-center gap-1.5">

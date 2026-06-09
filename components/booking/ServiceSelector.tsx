@@ -48,7 +48,7 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
           key={svc.id}
           type="button"
           onClick={() => onSelect(svc)}
-          className="w-full bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5 text-right hover:border-rose-200 hover:shadow-rose-50 hover:shadow-md active:scale-[0.99] transition-all"
+          className="w-full bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5 text-right hover:border-sky-200 hover:shadow-sky-50 hover:shadow-md active:scale-[0.99] transition-all"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex-1 min-w-0">
@@ -59,7 +59,7 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
             </div>
             <div className="shrink-0 text-left">
               {svc.price != null ? (
-                <p className="text-xl font-bold text-rose-600">₪{svc.price}</p>
+                <p className="text-xl font-bold text-blue-700">₪{svc.price}</p>
               ) : (
                 <p className="text-xs text-[#6e6e73] max-w-[80px] text-center leading-snug">
                   {svc.priceNote}

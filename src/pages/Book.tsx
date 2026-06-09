@@ -76,7 +76,7 @@ export default function Book() {
     return (
       <main className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-rose-400 to-pink-600 animate-pulse mx-auto mb-3" />
+          <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-sky-400 to-blue-600 animate-pulse mx-auto mb-3" />
           <p className="text-sm text-[#6e6e73]">טוען…</p>
         </div>
       </main>
@@ -92,9 +92,8 @@ export default function Book() {
     <main className="min-h-screen bg-[#f5f5f7]">
       <header className="bg-white/80 backdrop-blur-md border-b border-[#f0f0f0] sticky top-0 z-20">
         <div className="max-w-lg mx-auto px-4 h-14 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="text-xl">💅</span>
-            <span className="font-bold text-[#1d1d1f]">שי גבאי</span>
+          <Link to="/" className="flex items-center">
+            <img src="/logo.png" alt="שי גבאי" className="h-9 w-auto object-contain" />
           </Link>
           {user && (
             <button
@@ -130,7 +129,7 @@ export default function Book() {
             </div>
             <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-6 space-y-5">
               <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-50 mb-4">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 mb-4">
                   <span className="text-3xl">👋</span>
                 </div>
                 <h2 className="text-xl font-bold text-[#1d1d1f]">איך קוראים לך?</h2>
@@ -155,7 +154,7 @@ export default function Book() {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm font-semibold"
+                  className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-sky-500 to-blue-700 hover:from-sky-600 hover:to-blue-800 shadow-sm font-semibold"
                   disabled={!name.trim()}
                 >
                   המשך לבחירת שירות ←
@@ -179,7 +178,7 @@ export default function Book() {
                   setNameConfirmed(false)
                   navigate('/book')
                 }}
-                className="text-xs text-[#6e6e73] hover:text-rose-500 transition-colors"
+                className="text-xs text-[#6e6e73] hover:text-blue-600 transition-colors"
               >
                 שנה שם
               </button>
@@ -193,7 +192,7 @@ export default function Book() {
             <div className="flex items-center justify-between mb-5">
               <div>
                 <h1 className="text-2xl font-bold text-[#1d1d1f]">בחרי זמן</h1>
-                <p className="text-sm text-rose-500 font-medium mt-0.5">{selectedService.name}</p>
+                <p className="text-sm text-blue-600 font-medium mt-0.5">{selectedService.name}</p>
               </div>
               <button
                 type="button"
@@ -202,7 +201,7 @@ export default function Book() {
                   sessionStorage.removeItem('shai-selected-service')
                   navigate('/book?step=service')
                 }}
-                className="text-xs text-[#6e6e73] hover:text-rose-500 transition-colors bg-[#f5f5f7] px-3 py-1.5 rounded-full"
+                className="text-xs text-[#6e6e73] hover:text-blue-600 transition-colors bg-[#f5f5f7] px-3 py-1.5 rounded-full"
               >
                 ← שנה שירות
               </button>

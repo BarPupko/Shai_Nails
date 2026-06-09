@@ -31,14 +31,14 @@ export function BookingSuccess({
           ✓
         </div>
         <h2 className="text-2xl font-bold text-[#1d1d1f] mb-1">התור אושר בהצלחה! 🎉</h2>
-        <p className="text-rose-500 font-semibold text-base mb-1">{name}</p>
+        <p className="text-blue-600 font-semibold text-base mb-1">{name}</p>
         {serviceName && (
           <p className="text-[#1d1d1f] font-medium text-sm mb-1">{serviceName}</p>
         )}
         <p className="text-[#6e6e73] text-sm mb-1">
           {format(startTime, 'EEEE, d בMMMM yyyy', { locale: he })}
         </p>
-        <p className="text-rose-600 font-bold text-xl" dir="ltr">
+        <p className="text-blue-700 font-bold text-xl" dir="ltr">
           {format(startTime, 'HH:mm')} — {format(endTime, 'HH:mm')}
         </p>
         {servicePrice != null ? (
@@ -75,7 +75,7 @@ export function BookingSuccess({
         <button
           type="button"
           onClick={onBookAnother}
-          className="w-full text-sm text-[#6e6e73] hover:text-rose-500 transition-colors py-3 text-center"
+          className="w-full text-sm text-[#6e6e73] hover:text-blue-600 transition-colors py-3 text-center"
         >
           + קביעת תור נוסף
         </button>

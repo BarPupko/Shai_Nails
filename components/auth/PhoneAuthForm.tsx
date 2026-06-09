@@ -119,7 +119,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
       {step === 'phone' ? (
         <form onSubmit={handleSendOTP} className="space-y-5">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-50 mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 mb-4">
               <span className="text-3xl">📱</span>
             </div>
             <h2 className="text-xl font-bold text-[#1d1d1f]">אימות מספר טלפון</h2>
@@ -152,7 +152,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
           <Button
             type="submit"
-            className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200 font-semibold"
+            className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-sky-500 to-blue-700 hover:from-sky-600 hover:to-blue-800 shadow-sm shadow-blue-200 font-semibold"
             disabled={loading || phone.length < 9}
           >
             {loading ? 'שולח קוד…' : 'שליחת קוד אימות'}
@@ -161,7 +161,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
       ) : (
         <form onSubmit={handleVerifyOTP} className="space-y-5">
           <div className="text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-rose-50 mb-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-sky-50 mb-4">
               <span className="text-3xl">🔐</span>
             </div>
             <h2 className="text-xl font-bold text-[#1d1d1f]">הזיני את הקוד</h2>
@@ -190,7 +190,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
           <div className="text-center">
             {resendUsed ? (
-              <p className="text-xs text-[#c7c7cc]">הודעה נשלחה שוב — בדקי את WhatsApp</p>
+              <p className="text-xs text-[#c7c7cc]">הודעה נשלחה שוב — בדקי את SMS</p>
             ) : countdown > 0 ? (
               <p className="text-sm text-[#6e6e73]">
                 לא קיבלת? שלחי שוב בעוד{' '}
@@ -203,7 +203,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
                 type="button"
                 onClick={handleResend}
                 disabled={resendLoading}
-                className="text-sm font-medium text-rose-500 hover:text-rose-600 transition-colors disabled:opacity-50"
+                className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors disabled:opacity-50"
               >
                 {resendLoading ? 'שולח…' : 'לא קיבלת קוד? שלחי שוב'}
               </button>
@@ -218,7 +218,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
           <Button
             type="submit"
-            className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-600 hover:to-pink-700 shadow-sm shadow-rose-200 font-semibold"
+            className="w-full h-12 text-base rounded-xl bg-gradient-to-r from-sky-500 to-blue-700 hover:from-sky-600 hover:to-blue-800 shadow-sm shadow-blue-200 font-semibold"
             disabled={loading || otp.length !== 6}
           >
             {loading ? 'מאמת…' : 'אימות קוד'}

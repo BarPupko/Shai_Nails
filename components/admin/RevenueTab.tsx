@@ -50,7 +50,7 @@ export function RevenueTab({ appointments }: RevenueTabProps) {
 
       <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#f0f0f0] text-center">
         <p className="text-xs text-[#6e6e73] mb-1">סה&quot;כ (כולל צפוי)</p>
-        <p className="text-3xl font-bold text-rose-600">₪{total.toLocaleString()}</p>
+        <p className="text-3xl font-bold text-blue-700">₪{total.toLocaleString()}</p>
         <p className="text-xs text-[#6e6e73] mt-1">מחיר לתור: ₪{SERVICE_PRICE_NIS}</p>
       </div>
 

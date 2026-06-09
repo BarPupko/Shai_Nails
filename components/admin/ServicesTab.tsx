@@ -146,7 +146,7 @@ export function ServicesTab() {
                   <p className="text-sm text-[#6e6e73]">
                     ⏱ עד {formatDuration(svc.durationMinutes)}
                   </p>
-                  <p className="text-sm font-semibold text-rose-600 mt-0.5">
+                  <p className="text-sm font-semibold text-blue-700 mt-0.5">
                     {svc.price != null ? `₪${svc.price}` : svc.priceNote || 'מחיר לפי הדוגמא'}
                   </p>
                 </div>
@@ -192,7 +192,7 @@ export function ServicesTab() {
       ) : (
         <Button
           variant="outline"
-          className="w-full h-12 rounded-2xl border-dashed border-[#d1d1d6] text-[#6e6e73] hover:border-rose-300 hover:text-rose-500 hover:bg-rose-50"
+          className="w-full h-12 rounded-2xl border-dashed border-[#d1d1d6] text-[#6e6e73] hover:border-sky-300 hover:text-blue-600 hover:bg-sky-50"
           onClick={startNew}
         >
           + הוסף שירות חדש
@@ -222,7 +222,7 @@ function EditForm({
   isNew?: boolean
 }) {
   return (
-    <div className="bg-white rounded-3xl shadow-sm border border-rose-100 p-5 space-y-3">
+    <div className="bg-white rounded-3xl shadow-sm border border-sky-100 p-5 space-y-3">
       <p className="text-sm font-semibold text-[#1d1d1f]">{isNew ? 'שירות חדש' : 'עריכת שירות'}</p>
 
       <Input
@@ -279,7 +279,7 @@ function EditForm({
       <div className="flex gap-2 pt-1">
         <Button
           size="sm"
-          className="flex-1 h-10 rounded-xl bg-rose-500 hover:bg-rose-600 text-sm"
+          className="flex-1 h-10 rounded-xl bg-blue-600 hover:bg-blue-700 text-sm"
           onClick={onSave}
           disabled={saving || !state.name.trim()}
         >

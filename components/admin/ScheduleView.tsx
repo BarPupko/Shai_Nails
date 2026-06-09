@@ -169,22 +169,22 @@ function DayView({
         return (
           <div key={appt.id} className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
             <div className="flex items-center gap-4">
-              <div className="shrink-0 w-14 h-14 rounded-2xl bg-rose-50 flex flex-col items-center justify-center">
-                <span className="text-xs font-bold text-rose-600 leading-tight" dir="ltr">
+              <div className="shrink-0 w-14 h-14 rounded-2xl bg-sky-50 flex flex-col items-center justify-center">
+                <span className="text-xs font-bold text-blue-700 leading-tight" dir="ltr">
                   {format(start, 'HH:mm')}
                 </span>
-                <span className="text-[10px] text-rose-300" dir="ltr">
+                <span className="text-[10px] text-sky-300" dir="ltr">
                   {format(end, 'HH:mm')}
                 </span>
               </div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-[#1d1d1f]">{appt.name || '—'}</p>
                 {appt.serviceName && (
-                  <p className="text-xs text-rose-500 font-medium">{appt.serviceName}</p>
+                  <p className="text-xs text-blue-600 font-medium">{appt.serviceName}</p>
                 )}
                 <a
                   href={`tel:${appt.phoneNumber}`}
-                  className="text-[#6e6e73] text-xs font-mono hover:text-rose-600 transition-colors"
+                  className="text-[#6e6e73] text-xs font-mono hover:text-blue-700 transition-colors"
                   dir="ltr"
                 >
                   {appt.phoneNumber}
@@ -242,14 +242,14 @@ function WeekView({
               onClick={() => onDayClick(day)}
               className={[
                 'flex flex-col items-center justify-center rounded-2xl p-2 min-h-[64px] transition-all hover:bg-[#f5f5f7] active:scale-95',
-                today ? 'bg-rose-50 border border-rose-200' : '',
+                today ? 'bg-sky-50 border border-sky-200' : '',
               ].join(' ')}
             >
-              <span className={['text-sm font-bold', today ? 'text-rose-600' : 'text-[#1d1d1f]'].join(' ')}>
+              <span className={['text-sm font-bold', today ? 'text-blue-700' : 'text-[#1d1d1f]'].join(' ')}>
                 {format(day, 'd')}
               </span>
               {count > 0 ? (
-                <span className="mt-1 min-w-[20px] h-5 rounded-full bg-rose-500 text-white text-[10px] font-bold flex items-center justify-center px-1.5">
+                <span className="mt-1 min-w-[20px] h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center px-1.5">
                   {count}
                 </span>
               ) : (
@@ -301,14 +301,14 @@ function MonthView({
               className={[
                 'flex flex-col items-center justify-center rounded-xl p-1 min-h-[44px] transition-all',
                 inMonth ? 'hover:bg-[#f5f5f7]' : 'opacity-30',
-                today ? 'bg-rose-50 border border-rose-200' : '',
+                today ? 'bg-sky-50 border border-sky-200' : '',
               ].join(' ')}
             >
-              <span className={['text-xs font-semibold', today ? 'text-rose-600' : 'text-[#1d1d1f]'].join(' ')}>
+              <span className={['text-xs font-semibold', today ? 'text-blue-700' : 'text-[#1d1d1f]'].join(' ')}>
                 {format(day, 'd')}
               </span>
               {count > 0 && inMonth ? (
-                <span className="mt-0.5 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
+                <span className="mt-0.5 w-4 h-4 rounded-full bg-blue-600 text-white text-[9px] font-bold flex items-center justify-center">
                   {count}
                 </span>
               ) : (

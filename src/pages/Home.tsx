@@ -28,8 +28,8 @@ export default function Home() {
 
   return (
     <main className="min-h-screen bg-white flex flex-col">
-      <div className="absolute -top-32 -right-32 w-80 h-80 bg-rose-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-pink-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
+      <div className="absolute -top-32 -right-32 w-80 h-80 bg-sky-100 rounded-full blur-3xl opacity-50 pointer-events-none" />
+      <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-blue-100 rounded-full blur-3xl opacity-40 pointer-events-none" />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 relative z-10">
         <div className="w-full max-w-sm text-center">
@@ -37,12 +37,11 @@ export default function Home() {
             <button
               type="button"
               onClick={handleLogoClick}
-              className="inline-flex items-center justify-center w-20 h-20 rounded-3xl bg-gradient-to-br from-rose-400 to-pink-600 shadow-lg shadow-rose-200 mb-5 active:scale-95 transition-transform select-none"
+              className="inline-block mb-5 active:scale-95 transition-transform select-none"
               aria-label="לוגו"
             >
-              <span className="text-4xl">💅</span>
+              <img src="/logo.png" alt="שי גבאי" className="w-40 h-40 object-contain" />
             </button>
-            <h1 className="text-3xl font-bold text-[#1d1d1f] tracking-tight">שי גבאי</h1>
             <p className="text-[#6e6e73] text-sm mt-1">טיפוח ציפורניים מקצועי</p>
           </div>
 
@@ -73,7 +72,7 @@ export default function Home() {
 
           <Link
             to="/book"
-            className="block w-full bg-gradient-to-r from-rose-500 to-pink-600 text-white font-semibold py-4 px-8 rounded-2xl text-lg shadow-lg shadow-rose-200 hover:shadow-rose-300 transition-all active:scale-[0.98]"
+            className="block w-full bg-gradient-to-r from-sky-500 to-blue-700 text-white font-semibold py-4 px-8 rounded-2xl text-lg shadow-lg shadow-blue-200 hover:shadow-blue-300 transition-all active:scale-[0.98]"
           >
             קביעת תור עכשיו 💅
           </Link>

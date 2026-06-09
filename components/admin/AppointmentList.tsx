@@ -93,11 +93,11 @@ export function AppointmentList({ appointments, onRefresh }: AppointmentListProp
           <div key={appt.id} className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
             <div className="flex items-center gap-4">
               {/* Date badge */}
-              <div className="shrink-0 w-14 h-14 rounded-2xl bg-rose-50 flex flex-col items-center justify-center">
-                <span className="text-xs font-semibold text-rose-400 uppercase leading-none">
+              <div className="shrink-0 w-14 h-14 rounded-2xl bg-sky-50 flex flex-col items-center justify-center">
+                <span className="text-xs font-semibold text-sky-400 uppercase leading-none">
                   {format(start, 'MMM', { locale: he })}
                 </span>
-                <span className="text-2xl font-bold text-rose-600 leading-tight">
+                <span className="text-2xl font-bold text-blue-700 leading-tight">
                   {format(start, 'd')}
                 </span>
               </div>
@@ -111,7 +111,7 @@ export function AppointmentList({ appointments, onRefresh }: AppointmentListProp
                 </p>
                 <a
                   href={`tel:${appt.phoneNumber}`}
-                  className="text-rose-400 text-xs font-mono hover:text-rose-600 transition-colors"
+                  className="text-sky-400 text-xs font-mono hover:text-blue-700 transition-colors"
                   dir="ltr"
                 >
                   {appt.phoneNumber}
