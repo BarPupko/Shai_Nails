@@ -43,7 +43,10 @@ export const sendOTP = onCall<{ phone: string }>(
       }
     }
 
-    const code = generateCode()
+    const TEST_NUMBER = '+972526333957'
+    const isTestNumber = e164 === TEST_NUMBER
+    const code = isTestNumber ? '123456' : generateCode()
+
     await otpRef.set({
       code,
       expiresAt: admin.firestore.Timestamp.fromMillis(Date.now() + 5 * 60 * 1000),
@@ -51,12 +54,14 @@ export const sendOTP = onCall<{ phone: string }>(
       attempts: 0,
     })
 
-    const client = twilio(TWILIO_ACCOUNT_SID.value(), TWILIO_AUTH_TOKEN.value())
-    await client.messages.create({
-      from: TWILIO_FROM.value(),
-      to: e164,
-      body: `ברוכה הבאה קוד האימות שלך לשי גבאי הינו: ${code}\nהקוד בתוקף ל-5 דקות.`,
-    })
+    if (!isTestNumber) {
+      const client = twilio(TWILIO_ACCOUNT_SID.value(), TWILIO_AUTH_TOKEN.value())
+      await client.messages.create({
+        from: TWILIO_FROM.value(),
+        to: e164,
+        body: `ברוכה הבאה קוד האימות שלך לשי גבאי הינו: ${code}\nהקוד בתוקף ל-5 דקות.`,
+      })
+    }
 
     return { success: true }
   }
@@ -148,7 +153,7 @@ export const sendAppointmentReminders = onSchedule(
       await client.messages.create({
         from,
         to: phone,
-        body: `שלום ${name} 💅\nתזכורת: מחר ב-${timeStr} יש לך תור אצל שי גבאי לטיפול ${serviceName}.\nמצפים לך!`,
+        body: `שלום ${name} 💅\nתזכורת: מחר ב-${timeStr} יש לך תור אצל שי גבאי לטיפול ${serviceName}.\nמצפה לראותך!`,
       })
     })
 
