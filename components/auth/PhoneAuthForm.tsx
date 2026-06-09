@@ -1,13 +1,17 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { RecaptchaVerifier, signInWithPhoneNumber, ConfirmationResult, initializeRecaptchaConfig } from 'firebase/auth'
-import { auth } from '@/firebase/config'
+import { httpsCallable } from 'firebase/functions'
+import { signInWithCustomToken } from 'firebase/auth'
+import { auth, functions } from '@/firebase/config'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
 const RESEND_SECONDS = 120
+
+const sendOTPFn = httpsCallable<{ phone: string }, { success: boolean }>(functions, 'sendOTP')
+const verifyOTPFn = httpsCallable<{ phone: string; code: string }, { token: string }>(functions, 'verifyOTP')
 
 interface PhoneAuthFormProps {
   onSuccess?: () => void
@@ -20,20 +24,13 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
-  // Resend state
   const [countdown, setCountdown] = useState(0)
   const [resendUsed, setResendUsed] = useState(false)
   const [resendLoading, setResendLoading] = useState(false)
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
-  const recaptchaRef = useRef<RecaptchaVerifier | null>(null)
-  const containerRef = useRef<HTMLDivElement>(null)
-  const confirmationRef = useRef<ConfirmationResult | null>(null)
-
   useEffect(() => {
     return () => {
-      try { recaptchaRef.current?.clear() } catch (_) {}
-      recaptchaRef.current = null
       if (countdownRef.current) clearInterval(countdownRef.current)
     }
   }, [])
@@ -52,33 +49,22 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     }, 1000)
   }
 
-  function resetRecaptcha() {
-    try { recaptchaRef.current?.clear() } catch (_) {}
-    recaptchaRef.current = null
-    if (containerRef.current) containerRef.current.innerHTML = ''
+  function mapError(err: unknown): string {
+    const code = (err as { code?: string })?.code ?? ''
+    if (code === 'functions/resource-exhausted') return 'יש להמתין לפני שליחת קוד נוסף.'
+    if (code === 'functions/invalid-argument') return 'מספר טלפון לא תקין. בדקי שהמספר בפורמט 05XXXXXXXX.'
+    if (code === 'functions/deadline-exceeded') return 'הקוד פג תוקף. בקשי קוד חדש.'
+    if (code === 'functions/unauthenticated') return 'קוד שגוי. בדקי ונסי שוב.'
+    if (code === 'functions/not-found') return 'לא נמצא קוד לאימות. שלחי קוד מחדש.'
+    return 'שגיאה. בדקי את מספר הטלפון ונסי שוב.'
   }
 
-  async function sendOTP(): Promise<boolean> {
-    const e164 = '+972' + phone.replace(/^0/, '')
+  async function callSendOTP(): Promise<boolean> {
     try {
-      await initializeRecaptchaConfig(auth)
-      if (!recaptchaRef.current) {
-        recaptchaRef.current = new RecaptchaVerifier(auth, 'recaptcha-container', { size: 'invisible' })
-      }
-      confirmationRef.current = await signInWithPhoneNumber(auth, e164, recaptchaRef.current)
+      await sendOTPFn({ phone })
       return true
-    } catch (err: unknown) {
-      resetRecaptcha()
-      const msg = err instanceof Error ? err.message : ''
-      if (msg.includes('billing-not-enabled')) {
-        setError('שירות ה-SMS אינו מופעל. יש להפעיל חיוב בפרויקט Firebase.')
-      } else if (msg.includes('invalid-phone-number')) {
-        setError('מספר טלפון לא תקין. בדקי שהמספר בפורמט 05XXXXXXXX.')
-      } else if (msg.includes('too-many-requests')) {
-        setError('מספר זה נחסם זמנית עקב ניסיונות רבים. נסי שוב מאוחר יותר.')
-      } else {
-        setError('שליחת הקוד נכשלה. בדקי את מספר הטלפון ונסי שוב.')
-      }
+    } catch (err) {
+      setError(mapError(err))
       return false
     }
   }
@@ -87,7 +73,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     e.preventDefault()
     setError('')
     setLoading(true)
-    const ok = await sendOTP()
+    const ok = await callSendOTP()
     setLoading(false)
     if (ok) {
       setStep('otp')
@@ -99,8 +85,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
   async function handleResend() {
     setError('')
     setResendLoading(true)
-    resetRecaptcha()
-    const ok = await sendOTP()
+    const ok = await callSendOTP()
     setResendLoading(false)
     if (ok) {
       setResendUsed(true)
@@ -110,14 +95,14 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
   async function handleVerifyOTP(e: React.FormEvent) {
     e.preventDefault()
-    if (!confirmationRef.current) return
     setError('')
     setLoading(true)
     try {
-      await confirmationRef.current.confirm(otp)
+      const result = await verifyOTPFn({ phone, code: otp })
+      await signInWithCustomToken(auth, result.data.token)
       onSuccess?.()
-    } catch {
-      setError('קוד שגוי. בדוק ונסה שוב.')
+    } catch (err) {
+      setError(mapError(err))
     } finally {
       setLoading(false)
     }
@@ -131,8 +116,6 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
 
   return (
     <div className="space-y-6">
-      <div id="recaptcha-container" ref={containerRef} />
-
       {step === 'phone' ? (
         <form onSubmit={handleSendOTP} className="space-y-5">
           <div className="text-center">
@@ -141,7 +124,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             </div>
             <h2 className="text-xl font-bold text-[#1d1d1f]">אימות מספר טלפון</h2>
             <p className="text-sm text-[#6e6e73] mt-1">
-              נשלח אליך קוד חד-פעמי לאימות
+              נשלח אליך קוד חד-פעמי לאימות ב-SMS
             </p>
           </div>
 
@@ -183,7 +166,7 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             </div>
             <h2 className="text-xl font-bold text-[#1d1d1f]">הזיני את הקוד</h2>
             <p className="text-sm text-[#6e6e73] mt-1">
-              קוד נשלח למספר <span className="font-medium text-[#1d1d1f]" dir="ltr">{phone}</span>
+              קוד נשלח למספר <span className="font-medium text-[#1d1d1f]" dir="ltr">{phone}</span> ב-SMS
             </p>
           </div>
 
@@ -205,10 +188,9 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
             />
           </div>
 
-          {/* Resend section */}
           <div className="text-center">
             {resendUsed ? (
-              <p className="text-xs text-[#c7c7cc]">הודעה נשלחה שוב — בדקי את הטלפון</p>
+              <p className="text-xs text-[#c7c7cc]">הודעה נשלחה שוב — בדקי את WhatsApp</p>
             ) : countdown > 0 ? (
               <p className="text-sm text-[#6e6e73]">
                 לא קיבלת? שלחי שוב בעוד{' '}

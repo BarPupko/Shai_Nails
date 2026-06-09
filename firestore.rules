@@ -4,6 +4,7 @@ service cloud.firestore {
 
     function isAdmin() {
       return request.auth != null && request.auth.uid in [
+        "A0B3ZEXfcqhSquqQkoqZ0I6BRtD3",
         "GL5yI9uYdJUReqLczdO0RWVIkdk1",
         "xgEpG6IVB9TtBoTU3KIavIrfHSA3",
         "znbtJJzpq8huSgDG5S5D24iKqYl1",
@@ -35,6 +36,12 @@ service cloud.firestore {
     match /blockedDates/{dateId} {
       allow read: if request.auth != null;
       allow write: if isAdmin();
+    }
+
+    // OTP codes are written/read exclusively by Cloud Functions (Admin SDK bypasses rules).
+    // Deny all client access.
+    match /otpCodes/{phone} {
+      allow read, write: if false;
     }
   }
 }

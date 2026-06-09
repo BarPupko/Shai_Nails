@@ -68,7 +68,54 @@ The `isAdmin()` function has UIDs hardcoded — if a new admin is added, update 
 
 ---
 
-## Current struggle: SMS OTP not delivered (UNRESOLVED as of 2026-06-09)
+## Auth flow replaced: Custom WhatsApp OTP via Twilio (2026-06-09)
+
+Firebase Phone Auth (SMS) was removed entirely. Auth now uses custom Cloud Functions + Twilio WhatsApp.
+
+### Architecture
+1. Frontend calls `sendOTP` Cloud Function with `{ phone }` → Cloud Function generates 6-digit code, stores in `otpCodes/{e164}` Firestore collection (5-min expiry, 3-attempt limit, 60s rate-limit), sends via Twilio WhatsApp.
+2. Frontend calls `verifyOTP` Cloud Function with `{ phone, code }` → Cloud Function validates, creates/finds Firebase user by phone number, returns a **Custom Auth Token**.
+3. Frontend calls `signInWithCustomToken(auth, token)` to log in.
+
+### Files
+| File | Change |
+|------|--------|
+| `functions/src/index.ts` | Two Cloud Functions: `sendOTP`, `verifyOTP` |
+| `functions/package.json` | firebase-admin, firebase-functions, twilio |
+| `firebase.json` | Added `functions` config (source: `functions/`, region: `europe-west1`) |
+| `firebase/config.ts` | Removed reCAPTCHA init; added `getFunctions(app, 'europe-west1')` export |
+| `components/auth/PhoneAuthForm.tsx` | Replaced RecaptchaVerifier + signInWithPhoneNumber with httpsCallable + signInWithCustomToken |
+| `firestore.rules` | Added `otpCodes` collection rule: `allow read, write: if false` |
+
+### Deploy checklist
+1. Set Twilio secrets:
+   ```
+   firebase functions:secrets:set TWILIO_ACCOUNT_SID --project shainails
+   firebase functions:secrets:set TWILIO_AUTH_TOKEN --project shainails
+   firebase functions:secrets:set TWILIO_WHATSAPP_FROM --project shainails
+   ```
+   (Value for `TWILIO_WHATSAPP_FROM`: `whatsapp:+14155238886` for Twilio Sandbox, or approved WhatsApp Business number for production)
+
+2. For Twilio WhatsApp Sandbox testing: the user's phone must first send "join <sandbox-keyword>" to +14155238886 on WhatsApp (one-time activation per number).
+
+3. Deploy functions + rules:
+   ```
+   cd functions && npm run build
+   firebase deploy --only functions,firestore:rules --project shainails
+   ```
+
+4. Deploy frontend as usual:
+   ```
+   npm run build
+   ```
+   Then upload `dist/` to Hostinger.
+
+### Status
+**Implemented, not yet deployed.**
+
+---
+
+## Previous struggle: SMS OTP not delivered (resolved by replacing Firebase Phone Auth)
 
 ### Symptoms
 - Firebase Usage shows SMS "sent" (7 logged)

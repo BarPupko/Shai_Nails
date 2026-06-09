@@ -1,6 +1,7 @@
 import { initializeApp, getApps, getApp } from 'firebase/app'
-import { getAuth, initializeRecaptchaConfig } from 'firebase/auth'
+import { getAuth } from 'firebase/auth'
 import { getFirestore } from 'firebase/firestore'
+import { getFunctions } from 'firebase/functions'
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -15,10 +16,6 @@ const firebaseConfig = {
 const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp()
 const auth = getAuth(app)
 const db = getFirestore(app)
+const functions = getFunctions(app, 'europe-west1')
 
-// Switch phone auth to reCAPTCHA Enterprise (uses the key configured in
-// Firebase Auth Settings) instead of legacy reCAPTCHA v2 which returns 401
-// on the Hostinger domain.
-initializeRecaptchaConfig(auth).catch(() => {})
-
-export { app, auth, db }
+export { app, auth, db, functions }
