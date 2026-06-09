@@ -81,11 +81,22 @@ export default function Admin() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-[#1d1d1f]">לוח ניהול</h1>
-          <p className="text-sm text-[#6e6e73] mt-1">
-            {dataLoading ? 'טוען נתונים…' : `${appointments.length} הזמנות בסה"כ`}
-          </p>
+        <div className="mb-6 flex items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-bold text-[#1d1d1f]">לוח ניהול</h1>
+            <p className="text-sm text-[#6e6e73] mt-1">
+              {dataLoading ? 'טוען נתונים…' : `${appointments.length} הזמנות בסה"כ`}
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5 shrink-0"
+            onClick={fetchAll}
+            disabled={dataLoading}
+          >
+            {dataLoading ? '…' : '🔄 סנכרן תורים'}
+          </Button>
         </div>
 
         <Tabs defaultValue="schedule" dir="rtl">
