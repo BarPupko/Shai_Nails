@@ -11,7 +11,9 @@ import { AvailabilityTab } from '@/components/admin/AvailabilityTab'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ADMIN_UIDS } from '@/lib/constants'
 import { getAllAppointmentsAdmin } from '@/lib/firebase/appointments'
+import { downloadBulkICS, generateGoogleCalendarURL } from '@/lib/calendarExport'
 import { Button } from '@/components/ui/button'
+import { Timestamp } from 'firebase/firestore'
 import type { Appointment } from '@/types'
 
 export default function Admin() {
@@ -81,22 +83,69 @@ export default function Admin() {
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-6">
-        <div className="mb-6 flex items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-[#1d1d1f]">לוח ניהול</h1>
-            <p className="text-sm text-[#6e6e73] mt-1">
-              {dataLoading ? 'טוען נתונים…' : `${appointments.length} הזמנות בסה"כ`}
-            </p>
+        <div className="mb-6">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div>
+              <h1 className="text-2xl font-bold text-[#1d1d1f]">לוח ניהול</h1>
+              <p className="text-sm text-[#6e6e73] mt-1">
+                {dataLoading ? 'טוען נתונים…' : `${appointments.filter(a => a.status === 'active').length} הזמנות פעילות`}
+              </p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-9 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5 shrink-0"
+              onClick={fetchAll}
+              disabled={dataLoading}
+            >
+              {dataLoading ? '…' : '🔄 סנכרן תורים'}
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-9 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5 shrink-0"
-            onClick={fetchAll}
-            disabled={dataLoading}
-          >
-            {dataLoading ? '…' : '🔄 סנכרן תורים'}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1 h-10 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5"
+              disabled={dataLoading || appointments.length === 0}
+              onClick={() => {
+                const upcoming = appointments.filter(
+                  (a) => a.status === 'active' && (a.startTime as Timestamp).toDate() >= new Date()
+                )
+                downloadBulkICS(upcoming.map((a) => ({
+                  startTime: (a.startTime as Timestamp).toDate(),
+                  endTime: (a.endTime as Timestamp).toDate(),
+                  name: a.name || a.phoneNumber,
+                })))
+              }}
+            >
+              <img src="/apple.logo.png" alt="Apple" className="w-4 h-4 object-contain" />
+              ייצוא
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 h-10 rounded-xl bg-[#1a73e8] hover:bg-[#1557b0] text-xs font-medium gap-1.5"
+              disabled={dataLoading || appointments.length === 0}
+              onClick={() => {
+                const upcoming = appointments.filter(
+                  (a) => a.status === 'active' && (a.startTime as Timestamp).toDate() >= new Date()
+                )
+                upcoming.forEach((a, i) => {
+                  setTimeout(() => {
+                    window.open(
+                      generateGoogleCalendarURL(
+                        (a.startTime as Timestamp).toDate(),
+                        (a.endTime as Timestamp).toDate()
+                      ),
+                      '_blank'
+                    )
+                  }, i * 400)
+                })
+              }}
+            >
+              <img src="/google.png" alt="Google" className="w-4 h-4 object-contain" />
+              ייצוא
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="schedule" dir="rtl">

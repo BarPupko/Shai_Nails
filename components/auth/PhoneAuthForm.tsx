@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { httpsCallable } from 'firebase/functions'
 import { signInWithCustomToken } from 'firebase/auth'
-import { auth, functions } from '@/firebase/config'
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore'
+import { auth, functions, db } from '@/firebase/config'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -100,6 +101,13 @@ export function PhoneAuthForm({ onSuccess }: PhoneAuthFormProps) {
     try {
       const result = await verifyOTPFn({ phone, code: otp })
       await signInWithCustomToken(auth, result.data.token)
+      const uid = auth.currentUser?.uid
+      if (uid) {
+        await setDoc(doc(db, 'users', uid), {
+          phoneNumber: phone,
+          lastSeenAt: serverTimestamp(),
+        }, { merge: true }).catch(() => {})
+      }
       onSuccess?.()
     } catch (err) {
       setError(mapError(err))

@@ -160,3 +160,28 @@ export const sendAppointmentReminders = onSchedule(
     await Promise.allSettled(sends)
   }
 )
+
+export const listAuthUsers = onCall(
+  { region: 'europe-west1', invoker: 'public' },
+  async (request) => {
+    if (!request.auth) throw new HttpsError('unauthenticated', 'Login required')
+    const adminUids = [
+      'A0B3ZEXfcqhSquqQkoqZ0I6BRtD3',
+      'GL5yI9uYdJUReqLczdO0RWVIkdk1',
+      'xgEpG6IVB9TtBoTU3KIavIrfHSA3',
+      'znbtJJzpq8huSgDG5S5D24iKqYl1',
+      'Ha28aVcdNrV1C4kNg2rj64WS8yg1',
+      'JAv4EnqMyiWJKBByu7a2uQnXcTB2',
+    ]
+    if (!adminUids.includes(request.auth.uid)) {
+      throw new HttpsError('permission-denied', 'Admins only')
+    }
+    const result = await admin.auth().listUsers(1000)
+    return result.users.map((u) => ({
+      uid: u.uid,
+      phoneNumber: u.phoneNumber ?? '',
+      createdAt: u.metadata.creationTime,
+      lastSignInAt: u.metadata.lastSignInTime,
+    }))
+  }
+)

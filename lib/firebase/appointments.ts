@@ -83,6 +83,18 @@ export async function cancelAppointment(appointmentId: string): Promise<void> {
   await updateDoc(doc(db, 'appointments', appointmentId), { status: 'cancelled' })
 }
 
+export async function rescheduleAppointment(
+  appointmentId: string,
+  newStartTime: Date,
+  durationMinutes: number
+): Promise<void> {
+  const newEndTime = new Date(newStartTime.getTime() + durationMinutes * 60 * 1000)
+  await updateDoc(doc(db, 'appointments', appointmentId), {
+    startTime: Timestamp.fromDate(newStartTime),
+    endTime: Timestamp.fromDate(newEndTime),
+  })
+}
+
 export async function getAllUpcomingAppointments(): Promise<Appointment[]> {
   const now = Timestamp.now()
   const q = query(

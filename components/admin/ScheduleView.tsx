@@ -21,7 +21,8 @@ import {
 import { he } from 'date-fns/locale'
 import { Timestamp } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
-import { cancelAppointment } from '@/lib/firebase/appointments'
+import { Input } from '@/components/ui/input'
+import { cancelAppointment, rescheduleAppointment } from '@/lib/firebase/appointments'
 import type { Appointment } from '@/types'
 
 type View = 'day' | 'week' | 'month'
@@ -109,7 +110,7 @@ export function ScheduleView({ appointments, onRefresh }: ScheduleViewProps) {
       </div>
 
       {/* Day view */}
-      {view === 'day' && <DayView day={cursor} appointments={appointments} cancellingId={cancellingId} onCancel={handleCancel} />}
+      {view === 'day' && <DayView day={cursor} appointments={appointments} cancellingId={cancellingId} onCancel={handleCancel} onRefresh={onRefresh} />}
 
       {/* Week view */}
       {view === 'week' && (
@@ -137,12 +138,18 @@ function DayView({
   appointments,
   cancellingId,
   onCancel,
+  onRefresh,
 }: {
   day: Date
   appointments: Appointment[]
   cancellingId: string | null
   onCancel: (id: string) => void
+  onRefresh: () => void
 }) {
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null)
+  const [newTime, setNewTime] = useState('')
+  const [saving, setSaving] = useState(false)
+
   const dayAppts = useMemo(
     () =>
       appointments
@@ -150,6 +157,25 @@ function DayView({
         .sort((a, b) => (a.startTime as Timestamp).seconds - (b.startTime as Timestamp).seconds),
     [appointments, day]
   )
+
+  async function handleReschedule(appt: Appointment) {
+    if (!newTime) return
+    setSaving(true)
+    try {
+      const [h, m] = newTime.split(':').map(Number)
+      const newStart = new Date(day)
+      newStart.setHours(h, m, 0, 0)
+      await rescheduleAppointment(appt.id, newStart, appt.durationMinutes ?? 60)
+      setReschedulingId(null)
+      setNewTime('')
+      onRefresh()
+    } catch (err) {
+      console.error('reschedule failed', err)
+      alert('שגיאה בשינוי השעה — בדוק הרשאות Firestore')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   if (dayAppts.length === 0) {
     return (
@@ -166,6 +192,7 @@ function DayView({
       {dayAppts.map((appt) => {
         const start = (appt.startTime as Timestamp).toDate()
         const end = (appt.endTime as Timestamp).toDate()
+        const isRescheduling = reschedulingId === appt.id
         return (
           <div key={appt.id} className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
             <div className="flex items-center gap-4">
@@ -193,16 +220,56 @@ function DayView({
                   <p className="text-xs text-emerald-600 font-semibold">₪{appt.price}</p>
                 ) : null}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                className="shrink-0 h-9 text-xs rounded-xl border-red-100 text-red-500 hover:bg-red-50"
-                onClick={() => onCancel(appt.id)}
-                disabled={cancellingId === appt.id}
-              >
-                {cancellingId === appt.id ? '…' : 'ביטול'}
-              </Button>
+              <div className="flex flex-col gap-1.5 shrink-0">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs rounded-xl border-sky-100 text-blue-600 hover:bg-sky-50"
+                  onClick={() => {
+                    setReschedulingId(isRescheduling ? null : appt.id)
+                    setNewTime(format(start, 'HH:mm'))
+                  }}
+                >
+                  שנה שעה
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs rounded-xl border-red-100 text-red-500 hover:bg-red-50"
+                  onClick={() => onCancel(appt.id)}
+                  disabled={cancellingId === appt.id}
+                >
+                  {cancellingId === appt.id ? '…' : 'ביטול'}
+                </Button>
+              </div>
             </div>
+            {isRescheduling && (
+              <div className="mt-3 pt-3 border-t border-[#f5f5f7] flex items-center gap-2">
+                <Input
+                  type="time"
+                  value={newTime}
+                  onChange={(e) => setNewTime(e.target.value)}
+                  className="h-9 rounded-xl border-[#e5e5e5] text-sm w-32"
+                  dir="ltr"
+                />
+                <Button
+                  size="sm"
+                  className="h-9 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-semibold px-4"
+                  onClick={() => handleReschedule(appt)}
+                  disabled={saving || !newTime}
+                >
+                  {saving ? '…' : 'אישור'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 rounded-xl text-[#6e6e73] text-xs"
+                  onClick={() => setReschedulingId(null)}
+                >
+                  ביטול
+                </Button>
+              </div>
+            )}
           </div>
         )
       })}
