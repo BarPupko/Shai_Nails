@@ -66,6 +66,8 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
 
   const clients = useMemo<ClientSummary[]>(() => {
     const map: Record<string, ClientSummary> = {}
+    // UIDs that have an admin-saved name override — these must not be clobbered by appt.name
+    const savedNameUids = new Set(users.filter((u) => !!u.savedName).map((u) => u.uid))
 
     for (const u of users) {
       map[u.uid] = {
@@ -97,7 +99,11 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
       if (appt.status === 'active') c.activeBookings++
       const d = (appt.startTime as Timestamp).toDate()
       if (d > c.lastDate) { c.lastDate = d }
-      if (appt.name) { c.name = appt.name; c.hasRealName = true }
+      // Only use the appointment's name if the admin hasn't set a saved name override
+      if (appt.name && !savedNameUids.has(appt.userId)) {
+        c.name = appt.name
+        c.hasRealName = true
+      }
       c.phoneNumber = appt.phoneNumber
     }
 
