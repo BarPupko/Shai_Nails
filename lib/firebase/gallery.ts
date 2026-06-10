@@ -2,6 +2,7 @@ import {
   collection,
   getDocs,
   addDoc,
+  updateDoc,
   deleteDoc,
   doc,
   query,
@@ -94,6 +95,42 @@ export async function addInstagramItem(
     label,
     category,
     storagePath,
+    order: currentCount,
+    uploadedAt: null as any,
+  }
+}
+
+export async function updateGalleryItem(
+  id: string,
+  label: string,
+  category: GalleryCategory
+): Promise<void> {
+  await updateDoc(doc(db, GALLERY_COL, id), { label, category })
+}
+
+export async function addDirectUrlItem(
+  url: string,
+  label: string,
+  category: GalleryCategory,
+  currentCount: number
+): Promise<GalleryItem> {
+  if (!url.startsWith('https://')) throw new Error('כתובת URL חייבת להתחיל ב-https://')
+
+  const docRef = await addDoc(collection(db, GALLERY_COL), {
+    url,
+    label,
+    category,
+    storagePath: '',
+    order: currentCount,
+    uploadedAt: serverTimestamp(),
+  })
+
+  return {
+    id: docRef.id,
+    url,
+    label,
+    category,
+    storagePath: '',
     order: currentCount,
     uploadedAt: null as any,
   }

@@ -5,6 +5,8 @@ import {
   getGalleryItems,
   addGalleryItem,
   addInstagramItem,
+  addDirectUrlItem,
+  updateGalleryItem,
   deleteGalleryItem,
   instagramShortcode,
 } from '@/lib/firebase/gallery'
@@ -17,7 +19,7 @@ const CAT_LABELS: Record<GalleryCategory, string> = {
   acrylic: 'אקריל',
 }
 
-type AddMode = 'upload' | 'instagram'
+type AddMode = 'upload' | 'instagram' | 'url'
 
 export function GalleryAdmin() {
   const [items, setItems] = useState<GalleryItem[]>([])
@@ -33,6 +35,13 @@ export function GalleryAdmin() {
   const fileRef = useRef<HTMLInputElement>(null)
   // instagram
   const [igUrl, setIgUrl] = useState('')
+  // direct url
+  const [directUrl, setDirectUrl] = useState('')
+  // edit existing
+  const [editingItem, setEditingItem] = useState<GalleryItem | null>(null)
+  const [editLabel, setEditLabel] = useState('')
+  const [editCategory, setEditCategory] = useState<GalleryCategory>('gel')
+  const [editSaving, setEditSaving] = useState(false)
 
   useEffect(() => {
     getGalleryItems()
@@ -51,7 +60,11 @@ export function GalleryAdmin() {
 
   const canSave =
     label.trim() &&
-    (mode === 'upload' ? !!file : !!instagramShortcode(igUrl))
+    (mode === 'upload'
+      ? !!file
+      : mode === 'instagram'
+      ? !!instagramShortcode(igUrl)
+      : directUrl.startsWith('https://'))
 
   async function handleAdd() {
     if (!canSave) return
@@ -60,8 +73,10 @@ export function GalleryAdmin() {
       let newItem: GalleryItem
       if (mode === 'upload') {
         newItem = await addGalleryItem(file!, label.trim(), category, items.length)
-      } else {
+      } else if (mode === 'instagram') {
         newItem = await addInstagramItem(igUrl.trim(), label.trim(), category, items.length)
+      } else {
+        newItem = await addDirectUrlItem(directUrl.trim(), label.trim(), category, items.length)
       }
       setItems((prev) => [newItem, ...prev])
       resetForm()
@@ -77,10 +92,36 @@ export function GalleryAdmin() {
     setLabel('')
     setCategory('gel')
     setIgUrl('')
+    setDirectUrl('')
     setFile(null)
     if (preview) URL.revokeObjectURL(preview)
     setPreview(null)
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  function handleEditOpen(item: GalleryItem) {
+    setEditingItem(item)
+    setEditLabel(item.label)
+    setEditCategory(item.category)
+    setAdding(false)
+  }
+
+  async function handleEditSave() {
+    if (!editingItem || !editLabel.trim()) return
+    setEditSaving(true)
+    try {
+      await updateGalleryItem(editingItem.id, editLabel.trim(), editCategory)
+      setItems((prev) =>
+        prev.map((i) =>
+          i.id === editingItem.id ? { ...i, label: editLabel.trim(), category: editCategory } : i
+        )
+      )
+      setEditingItem(null)
+    } catch {
+      alert('שגיאה בשמירת השינויים')
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   async function handleDelete(item: GalleryItem) {
@@ -122,23 +163,27 @@ export function GalleryAdmin() {
 
           {/* mode toggle */}
           <div className="flex gap-1 bg-[#f5f5f7] rounded-xl p-1">
-            {(['upload', 'instagram'] as AddMode[]).map((m) => (
+            {([
+              { key: 'upload', label: '📷 קובץ' },
+              { key: 'instagram', label: '📸 אינסטגרם' },
+              { key: 'url', label: '🔗 כתובת URL' },
+            ] as { key: AddMode; label: string }[]).map(({ key, label: lbl }) => (
               <button
-                key={m}
+                key={key}
                 type="button"
-                onClick={() => setMode(m)}
+                onClick={() => setMode(key)}
                 className={`flex-1 h-9 rounded-lg text-xs font-semibold transition-all ${
-                  mode === m
+                  mode === key
                     ? 'bg-white shadow-sm text-[#1d1d1f]'
                     : 'text-[#6e6e73] hover:text-[#1d1d1f]'
                 }`}
               >
-                {m === 'upload' ? '📷 העלאת קובץ' : '📸 קישור אינסטגרם'}
+                {lbl}
               </button>
             ))}
           </div>
 
-          {mode === 'upload' ? (
+          {mode === 'upload' && (
             <label className="border-2 border-dashed border-[#e5e5e5] rounded-2xl bg-[#f5f5f7] h-32 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-sky-300 hover:bg-sky-50 transition-colors overflow-hidden">
               {preview ? (
                 <img src={preview} alt="" className="w-full h-full object-cover" />
@@ -156,7 +201,9 @@ export function GalleryAdmin() {
                 onChange={handleFileChange}
               />
             </label>
-          ) : (
+          )}
+
+          {mode === 'instagram' && (
             <div className="flex flex-col gap-1.5">
               <label className="text-sm font-medium text-[#1d1d1f]">קישור לפוסט באינסטגרם</label>
               <input
@@ -170,6 +217,29 @@ export function GalleryAdmin() {
               {igUrl && !instagramShortcode(igUrl) && (
                 <p className="text-xs text-red-500">קישור לא תקין — העתיקי את הקישור מהפוסט באינסטגרם</p>
               )}
+              <p className="text-[11px] text-[#6e6e73]">
+                אם מקבלת שגיאה, נסי &quot;כתובת URL&quot; — לחצי לחיצה ארוכה על התמונה באינסטגרם ← &quot;העתיקי כתובת תמונה&quot;
+              </p>
+            </div>
+          )}
+
+          {mode === 'url' && (
+            <div className="flex flex-col gap-1.5">
+              <label className="text-sm font-medium text-[#1d1d1f]">כתובת ישירה לתמונה</label>
+              <input
+                type="url"
+                dir="ltr"
+                placeholder="https://..."
+                value={directUrl}
+                onChange={(e) => setDirectUrl(e.target.value)}
+                className="h-11 rounded-xl border border-[#e5e5e5] bg-[#f5f5f7] px-3 text-sm focus:bg-white focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 transition-colors"
+              />
+              {directUrl && !directUrl.startsWith('https://') && (
+                <p className="text-xs text-red-500">כתובת URL חייבת להתחיל ב-https://</p>
+              )}
+              <p className="text-[11px] text-[#6e6e73]">
+                לאינסטגרם: לחיצה ארוכה על תמונה בפוסט ← &quot;העתיקי כתובת תמונה&quot;
+              </p>
             </div>
           )}
 
@@ -234,30 +304,107 @@ export function GalleryAdmin() {
 
       {items.length > 0 && (
         <div className="grid grid-cols-3 gap-2.5">
-          {items.map((item) => (
-            <div key={item.id} className="relative rounded-2xl overflow-hidden shadow-sm aspect-square bg-[#f5f5f7]">
-              <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
-              {item.instagramUrl && (
-                <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center">
-                  <span className="text-[10px]">📸</span>
-                </div>
-              )}
-              <div className="absolute inset-0 flex flex-col justify-between p-2">
-                <button
-                  type="button"
-                  onClick={() => handleDelete(item)}
-                  className="self-end w-6 h-6 rounded-full bg-black/45 text-white text-sm flex items-center justify-center hover:bg-black/70 transition-colors leading-none"
-                >
-                  ×
-                </button>
-                <div className="bg-black/45 rounded-md px-1.5 py-0.5">
-                  <span className="text-white text-[10px] font-semibold leading-tight block">
-                    {item.label}
-                  </span>
+          {items.map((item) => {
+            const isEditing = editingItem?.id === item.id
+            return (
+              <div
+                key={item.id}
+                className={`relative rounded-2xl overflow-hidden shadow-sm aspect-square bg-[#f5f5f7] transition-all ${isEditing ? 'ring-2 ring-blue-500' : ''}`}
+              >
+                <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
+                {item.instagramUrl && (
+                  <div className="absolute top-1.5 right-1.5 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center">
+                    <span className="text-[10px]">📸</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 flex flex-col justify-between p-2">
+                  <div className="flex justify-end gap-1">
+                    <button
+                      type="button"
+                      onClick={() => isEditing ? setEditingItem(null) : handleEditOpen(item)}
+                      className="w-6 h-6 rounded-full bg-black/45 text-white text-xs flex items-center justify-center hover:bg-blue-500/80 transition-colors leading-none"
+                      title="ערוך כיתוב"
+                    >
+                      ✎
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(item)}
+                      className="w-6 h-6 rounded-full bg-black/45 text-white text-sm flex items-center justify-center hover:bg-red-500/80 transition-colors leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  <div className="bg-black/45 rounded-md px-1.5 py-0.5">
+                    <span className="text-white text-[10px] font-semibold leading-tight block">
+                      {item.label}
+                    </span>
+                    <span className="text-white/60 text-[9px] leading-tight block">
+                      {CAT_LABELS[item.category]}
+                    </span>
+                  </div>
                 </div>
               </div>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Inline edit panel */}
+      {editingItem && (
+        <div className="bg-white rounded-3xl shadow-sm border-[1.5px] border-blue-300 p-5 flex flex-col gap-4">
+          <p className="font-semibold text-[#1d1d1f] text-sm">עריכת כיתוב</p>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-xs font-medium text-[#6e6e73]">כותרת</label>
+            <input
+              type="text"
+              value={editLabel}
+              onChange={(e) => setEditLabel(e.target.value)}
+              autoFocus
+              placeholder="כותרת התמונה"
+              className="h-11 rounded-xl border border-[#e5e5e5] bg-[#f5f5f7] px-3 text-sm focus:bg-white focus:border-sky-300 focus:outline-none focus:ring-2 focus:ring-sky-100 transition-colors"
+              onKeyDown={(e) => e.key === 'Enter' && handleEditSave()}
+            />
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-medium text-[#6e6e73]">קטגוריה</label>
+            <div className="flex gap-2 flex-wrap">
+              {(Object.entries(CAT_LABELS) as [GalleryCategory, string][]).map(([k, v]) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setEditCategory(k)}
+                  className={`text-xs font-semibold px-3.5 py-1.5 rounded-full shadow-sm transition-all ${
+                    editCategory === k
+                      ? 'bg-blue-700 text-white'
+                      : 'bg-[#f5f5f7] text-[#6e6e73] hover:text-[#1d1d1f]'
+                  }`}
+                >
+                  {v}
+                </button>
+              ))}
             </div>
-          ))}
+          </div>
+
+          <div className="flex gap-2.5">
+            <button
+              type="button"
+              onClick={handleEditSave}
+              disabled={!editLabel.trim() || editSaving}
+              className="flex-1 h-10 bg-gradient-to-r from-sky-500 to-blue-700 text-white text-sm font-semibold rounded-xl disabled:opacity-50 shadow-sm transition-all active:scale-[0.98]"
+            >
+              {editSaving ? 'שומר…' : 'שמור'}
+            </button>
+            <button
+              type="button"
+              onClick={() => setEditingItem(null)}
+              className="h-10 px-5 bg-[#f5f5f7] text-[#1d1d1f] text-sm font-medium rounded-xl hover:bg-[#e5e5e5] transition-colors"
+            >
+              ביטול
+            </button>
+          </div>
         </div>
       )}
     </div>

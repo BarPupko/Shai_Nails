@@ -173,52 +173,90 @@ const ADMIN_UIDS = [
 export const importInstagramPhoto = onCall(
   { region: 'europe-west1' },
   async (request) => {
-    if (!request.auth || !ADMIN_UIDS.includes(request.auth.uid)) {
-      throw new HttpsError('permission-denied', 'Admins only')
+    try {
+      if (!request.auth || !ADMIN_UIDS.includes(request.auth.uid)) {
+        throw new HttpsError('permission-denied', 'Admins only')
+      }
+
+      const { instagramUrl } = request.data as { instagramUrl: string }
+      const match = instagramUrl?.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)
+      const code = match?.[1]
+      if (!code) throw new HttpsError('invalid-argument', 'קישור אינסטגרם לא תקין')
+
+      // Try fetching the Instagram page with multiple User-Agents
+      const UAS = [
+        'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        'Twitterbot/1.0',
+        'LinkedInBot/1.0 (compatible; Jakarta Commons-HttpClient/3.1 +http://www.linkedin.com)',
+      ]
+
+      let html = ''
+      let lastError = ''
+
+      for (const ua of UAS) {
+        try {
+          const resp = await fetch(`https://www.instagram.com/p/${code}/`, {
+            headers: {
+              'User-Agent': ua,
+              'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'en-US,en;q=0.5',
+              'Accept-Encoding': 'gzip, deflate, br',
+            },
+            redirect: 'follow',
+          })
+          if (resp.ok) {
+            html = await resp.text()
+            if (html.includes('og:image')) break
+          } else {
+            lastError = `HTTP ${resp.status}`
+          }
+        } catch (fetchErr) {
+          lastError = (fetchErr as Error).message
+          console.error(`Instagram fetch failed with UA "${ua}":`, fetchErr)
+        }
+      }
+
+      if (!html) {
+        throw new HttpsError('not-found', `לא הצלחנו לגשת לאינסטגרם: ${lastError}. הפוסט עשוי להיות פרטי, או נסי להעלות תמונה ישירות.`)
+      }
+
+      // og:image can appear in either attribute order
+      const imgMatch =
+        html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/) ||
+        html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/)
+
+      if (!imgMatch) {
+        console.error('og:image not found. HTML snippet:', html.substring(0, 1000))
+        throw new HttpsError('not-found', 'לא נמצאה תמונה בפוסט — ודאי שהפוסט ציבורי, או השתמשי ב"כתובת תמונה ישירה"')
+      }
+
+      const imageUrl = imgMatch[1].replace(/&amp;/g, '&')
+
+      // Download the image
+      let buffer: Buffer
+      try {
+        const imgResp = await fetch(imageUrl)
+        if (!imgResp.ok) throw new Error(`Image fetch returned ${imgResp.status}`)
+        buffer = Buffer.from(await imgResp.arrayBuffer())
+      } catch (imgErr) {
+        console.error('Image download failed:', imgErr)
+        throw new HttpsError('internal', `שגיאה בהורדת התמונה: ${(imgErr as Error).message}`)
+      }
+
+      // Re-upload to Firebase Storage so the URL is permanent
+      const bucket = admin.storage().bucket()
+      const storagePath = `gallery/instagram-${code}-${Date.now()}.jpg`
+      const fileRef = bucket.file(storagePath)
+      await fileRef.save(buffer, { contentType: 'image/jpeg' })
+      await fileRef.makePublic()
+      const url = fileRef.publicUrl()
+
+      return { url, storagePath }
+    } catch (err) {
+      if (err instanceof HttpsError) throw err
+      console.error('importInstagramPhoto unhandled error:', err)
+      throw new HttpsError('internal', `שגיאה לא צפויה: ${(err as Error).message ?? String(err)}`)
     }
-
-    const { instagramUrl } = request.data as { instagramUrl: string }
-    const match = instagramUrl?.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)
-    const code = match?.[1]
-    if (!code) throw new HttpsError('invalid-argument', 'קישור אינסטגרם לא תקין')
-
-    // Use Facebook's scraper UA — Instagram serves og:image to it for public posts
-    const pageResp = await fetch(`https://www.instagram.com/p/${code}/`, {
-      headers: {
-        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
-        Accept: 'text/html,application/xhtml+xml',
-      },
-    })
-    if (!pageResp.ok) {
-      throw new HttpsError('not-found', `אינסטגרם החזיר ${pageResp.status} — ודאי שהפוסט ציבורי`)
-    }
-
-    const html = await pageResp.text()
-
-    // og:image can appear in either attribute order
-    const imgMatch =
-      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/) ||
-      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/)
-    if (!imgMatch) {
-      throw new HttpsError('not-found', 'לא נמצאה תמונה בפוסט — ייתכן שהוא פרטי')
-    }
-
-    const imageUrl = imgMatch[1].replace(/&amp;/g, '&')
-
-    // Download the image
-    const imgResp = await fetch(imageUrl)
-    if (!imgResp.ok) throw new HttpsError('internal', 'שגיאה בהורדת התמונה')
-    const buffer = Buffer.from(await imgResp.arrayBuffer())
-
-    // Re-upload to Firebase Storage so the URL is permanent
-    const bucket = admin.storage().bucket()
-    const storagePath = `gallery/instagram-${code}-${Date.now()}.jpg`
-    const fileRef = bucket.file(storagePath)
-    await fileRef.save(buffer, { contentType: 'image/jpeg' })
-    await fileRef.makePublic()
-    const url = fileRef.publicUrl()
-
-    return { url, storagePath }
   }
 )
 
