@@ -44,6 +44,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [saving, setSaving] = useState(false)
+  const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -103,6 +104,15 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
     return Object.values(map).sort((a, b) => b.totalBookings - a.totalBookings)
   }, [appointments, users])
 
+  // All appointments for a given user, sorted newest first
+  const appointmentsForUser = (userId: string): Appointment[] =>
+    appointments
+      .filter((a) => a.userId === userId)
+      .sort((a, b) =>
+        (b.startTime as Timestamp).toDate().getTime() -
+        (a.startTime as Timestamp).toDate().getTime()
+      )
+
   async function handleSaveName(userId: string) {
     if (!editName.trim()) return
     setSaving(true)
@@ -134,6 +144,9 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
       <p className="text-sm text-[#6e6e73] px-1">{clients.length} לקוחות רשומים</p>
       {clients.map((client) => {
         const isEditing = editingId === client.userId
+        const isExpanded = expandedId === client.userId
+        const clientAppts = isExpanded ? appointmentsForUser(client.userId) : []
+
         return (
           <div
             key={client.userId}
@@ -147,8 +160,15 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
 
               {/* Info */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <p className="font-bold text-[#1d1d1f]">{client.name}</p>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setExpandedId(isExpanded ? null : client.userId)}
+                    className="font-bold text-[#1d1d1f] hover:text-blue-700 transition-colors text-right"
+                  >
+                    {client.name}
+                    <span className="text-[10px] text-[#c7c7cc] mr-1">{isExpanded ? '▲' : '▼'}</span>
+                  </button>
                   {!client.hasRealName && (
                     <button
                       type="button"
@@ -229,6 +249,55 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
                 >
                   ביטול
                 </Button>
+              </div>
+            )}
+
+            {/* Expanded appointment history */}
+            {isExpanded && (
+              <div className="mt-3 pt-3 border-t border-[#f5f5f7]">
+                <p className="text-xs font-semibold text-[#6e6e73] mb-2">היסטוריית תורים</p>
+                {clientAppts.length === 0 ? (
+                  <p className="text-xs text-[#c7c7cc] text-center py-2">אין תורים</p>
+                ) : (
+                  <div className="space-y-2">
+                    {clientAppts.map((appt) => {
+                      const date = (appt.startTime as Timestamp).toDate()
+                      const isPast = date < new Date()
+                      return (
+                        <div
+                          key={appt.id}
+                          className="flex items-center justify-between bg-[#f9f9fb] rounded-2xl px-4 py-2.5 gap-2"
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-semibold text-[#1d1d1f]">
+                              {format(date, 'EEEE, d MMM yyyy', { locale: he })}
+                            </p>
+                            <p className="text-[11px] text-[#6e6e73]">
+                              {format(date, 'HH:mm', { locale: he })}
+                              {appt.serviceName ? ` · ${appt.serviceName}` : ''}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            {appt.price != null && (
+                              <span className="text-xs font-semibold text-emerald-600">₪{appt.price}</span>
+                            )}
+                            <span
+                              className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                appt.status === 'cancelled'
+                                  ? 'bg-red-50 text-red-400'
+                                  : isPast
+                                  ? 'bg-[#f0f0f0] text-[#6e6e73]'
+                                  : 'bg-emerald-50 text-emerald-600'
+                              }`}
+                            >
+                              {appt.status === 'cancelled' ? 'בוטל' : isPast ? 'הושלם' : 'פעיל'}
+                            </span>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </div>

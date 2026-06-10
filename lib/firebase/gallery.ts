@@ -9,7 +9,8 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage'
-import { db, storage } from '@/firebase/config'
+import { httpsCallable } from 'firebase/functions'
+import { db, storage, functions } from '@/firebase/config'
 import type { GalleryItem, GalleryCategory } from '@/types'
 
 const GALLERY_COL = 'gallery'
@@ -46,6 +47,50 @@ export async function addGalleryItem(
   return {
     id: docRef.id,
     url,
+    label,
+    category,
+    storagePath,
+    order: currentCount,
+    uploadedAt: null as any,
+  }
+}
+
+export function instagramShortcode(url: string): string | null {
+  const m = url.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)
+  return m?.[1] ?? null
+}
+
+export async function addInstagramItem(
+  instagramUrl: string,
+  label: string,
+  category: GalleryCategory,
+  currentCount: number
+): Promise<GalleryItem> {
+  if (!instagramShortcode(instagramUrl)) throw new Error('קישור אינסטגרם לא תקין')
+
+  // Cloud Function fetches the page server-side, downloads the image, and re-uploads to Storage
+  const importFn = httpsCallable<
+    { instagramUrl: string },
+    { url: string; storagePath: string }
+  >(functions, 'importInstagramPhoto')
+
+  const result = await importFn({ instagramUrl })
+  const { url, storagePath } = result.data
+
+  const docRef = await addDoc(collection(db, GALLERY_COL), {
+    url,
+    instagramUrl,
+    label,
+    category,
+    storagePath,
+    order: currentCount,
+    uploadedAt: serverTimestamp(),
+  })
+
+  return {
+    id: docRef.id,
+    url,
+    instagramUrl,
     label,
     category,
     storagePath,

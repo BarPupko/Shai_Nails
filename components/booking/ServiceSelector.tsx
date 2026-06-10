@@ -14,6 +14,7 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
+  const [peek, setPeek] = useState<GalleryItem | null>(null)
 
   useEffect(() => {
     getServices()
@@ -62,10 +63,11 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
           </div>
           <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
             {galleryItems.map((item) => (
-              <Link
+              <button
                 key={item.id}
-                to="/gallery"
-                className="shrink-0 w-24 h-28 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
+                type="button"
+                onClick={() => setPeek(item)}
+                className="shrink-0 w-24 h-28 rounded-2xl overflow-hidden shadow-sm hover:shadow-md active:scale-95 transition-all relative"
               >
                 <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 py-1.5">
@@ -73,8 +75,53 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
                     {item.label}
                   </span>
                 </div>
-              </Link>
+              </button>
             ))}
+          </div>
+        </div>
+      )}
+
+      {peek && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/70"
+          onClick={() => setPeek(null)}
+        >
+          <div
+            className="relative max-w-xs w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={peek.url}
+              alt={peek.label}
+              className="w-full rounded-3xl shadow-2xl object-cover max-h-[70vh]"
+            />
+            <p className="text-center text-white font-semibold mt-3 text-base">{peek.label}</p>
+            <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
+              {peek.instagramUrl && (
+                <a
+                  href={peek.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-pink-300 hover:text-pink-200 transition-colors"
+                >
+                  📸 אינסטגרם
+                </a>
+              )}
+              <Link
+                to="/gallery"
+                className="text-sm font-semibold text-white/80 hover:text-white transition-colors"
+                onClick={() => setPeek(null)}
+              >
+                לכל הגלריה ←
+              </Link>
+              <button
+                type="button"
+                onClick={() => setPeek(null)}
+                className="bg-white/15 hover:bg-white/25 text-white text-sm px-6 py-2 rounded-full transition-colors"
+              >
+                סגירה
+              </button>
+            </div>
           </div>
         </div>
       )}

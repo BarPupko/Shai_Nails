@@ -83,6 +83,13 @@ export async function cancelAppointment(appointmentId: string): Promise<void> {
   await updateDoc(doc(db, 'appointments', appointmentId), { status: 'cancelled' })
 }
 
+export async function updateAppointmentPrice(
+  appointmentId: string,
+  price: number | null
+): Promise<void> {
+  await updateDoc(doc(db, 'appointments', appointmentId), { price })
+}
+
 export async function rescheduleAppointment(
   appointmentId: string,
   newStartTime: Date,

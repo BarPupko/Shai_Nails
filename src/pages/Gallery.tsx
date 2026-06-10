@@ -72,8 +72,7 @@ export default function Gallery() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="rounded-3xl bg-white animate-pulse shadow-sm"
-                style={{ height: i % 2 === 0 ? 160 : 140 }}
+                className={`rounded-3xl bg-white animate-pulse shadow-sm ${i % 2 === 0 ? 'h-40' : 'h-36'}`}
               />
             ))}
           </div>
@@ -108,25 +107,36 @@ export default function Gallery() {
           onClick={() => setZoom(null)}
         >
           <div className="max-w-sm w-full" onClick={(e) => e.stopPropagation()}>
-            <div className="rounded-2xl overflow-hidden mb-4 bg-[#1d1d1f]" style={{ maxHeight: 380 }}>
+            <div className="rounded-2xl overflow-hidden mb-4 bg-[#1d1d1f] max-h-[380px]">
               <img
                 src={zoom.url}
                 alt={zoom.label}
-                className="w-full h-full object-cover"
-                style={{ maxHeight: 380 }}
+                className="w-full h-full object-cover max-h-[380px]"
               />
             </div>
             <div className="text-center">
               <p className="text-white font-bold text-lg">{zoom.label}</p>
               <p className="text-white/70 text-sm mt-1">{CAT_LABELS[zoom.category]}</p>
             </div>
-            <button
-              type="button"
-              onClick={() => setZoom(null)}
-              className="block mx-auto mt-5 bg-white/15 text-white text-sm px-8 py-2.5 rounded-full hover:bg-white/25 transition-colors"
-            >
-              סגירה
-            </button>
+            <div className="flex items-center justify-center gap-3 mt-5 flex-wrap">
+              {zoom.instagramUrl && (
+                <a
+                  href={zoom.instagramUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm font-semibold text-pink-300 hover:text-pink-200 transition-colors"
+                >
+                  📸 ראי באינסטגרם
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => setZoom(null)}
+                className="bg-white/15 text-white text-sm px-8 py-2.5 rounded-full hover:bg-white/25 transition-colors"
+              >
+                סגירה
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -139,8 +149,7 @@ function GalleryTile({ item, onClick }: { item: GalleryItem; onClick: () => void
     <button
       type="button"
       onClick={onClick}
-      className="relative w-full rounded-3xl overflow-hidden shadow-sm hover:shadow-lg active:scale-[0.98] transition-all group"
-      style={{ aspectRatio: '4/5' }}
+      className="relative w-full rounded-3xl overflow-hidden shadow-sm hover:shadow-lg active:scale-[0.98] transition-all group aspect-[4/5]"
     >
       <img
         src={item.url}

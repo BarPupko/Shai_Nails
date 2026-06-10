@@ -47,10 +47,11 @@ export type GalleryCategory = 'gel' | 'classic' | 'art' | 'acrylic'
 
 export interface GalleryItem {
   id: string
-  url: string
+  url: string           // direct image URL (upload CDN or Instagram media redirect)
   label: string
   category: GalleryCategory
-  storagePath: string
+  storagePath: string   // empty string for Instagram items
+  instagramUrl?: string // original Instagram post URL, if sourced from Instagram
   uploadedAt: Timestamp
   order: number
 }

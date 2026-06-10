@@ -22,7 +22,7 @@ import { he } from 'date-fns/locale'
 import { Timestamp } from 'firebase/firestore'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { cancelAppointment, rescheduleAppointment } from '@/lib/firebase/appointments'
+import { cancelAppointment, rescheduleAppointment, updateAppointmentPrice } from '@/lib/firebase/appointments'
 import type { Appointment } from '@/types'
 
 type View = 'day' | 'week' | 'month'
@@ -149,6 +149,9 @@ function DayView({
   const [reschedulingId, setReschedulingId] = useState<string | null>(null)
   const [newTime, setNewTime] = useState('')
   const [saving, setSaving] = useState(false)
+  const [editingPriceId, setEditingPriceId] = useState<string | null>(null)
+  const [newPrice, setNewPrice] = useState('')
+  const [savingPrice, setSavingPrice] = useState(false)
 
   const dayAppts = useMemo(
     () =>
@@ -157,6 +160,21 @@ function DayView({
         .sort((a, b) => (a.startTime as Timestamp).seconds - (b.startTime as Timestamp).seconds),
     [appointments, day]
   )
+
+  async function handlePriceSave(appt: Appointment) {
+    setSavingPrice(true)
+    try {
+      const parsed = newPrice.trim() === '' ? null : Number(newPrice)
+      await updateAppointmentPrice(appt.id, parsed)
+      setEditingPriceId(null)
+      setNewPrice('')
+      onRefresh()
+    } catch {
+      alert('שגיאה בשמירת המחיר')
+    } finally {
+      setSavingPrice(false)
+    }
+  }
 
   async function handleReschedule(appt: Appointment) {
     if (!newTime) return
@@ -193,6 +211,7 @@ function DayView({
         const start = (appt.startTime as Timestamp).toDate()
         const end = (appt.endTime as Timestamp).toDate()
         const isRescheduling = reschedulingId === appt.id
+        const isEditingPrice = editingPriceId === appt.id
         return (
           <div key={appt.id} className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] p-5">
             <div className="flex items-center gap-4">
@@ -216,9 +235,17 @@ function DayView({
                 >
                   {appt.phoneNumber}
                 </a>
-                {appt.price != null ? (
-                  <p className="text-xs text-emerald-600 font-semibold">₪{appt.price}</p>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setEditingPriceId(isEditingPrice ? null : appt.id)
+                    setNewPrice(appt.price != null ? String(appt.price) : '')
+                    setReschedulingId(null)
+                  }}
+                  className="block text-xs text-emerald-600 font-semibold hover:text-emerald-700 transition-colors mt-0.5"
+                >
+                  {appt.price != null ? `₪${appt.price} ✎` : '+ הוסף מחיר'}
+                </button>
               </div>
               <div className="flex flex-col gap-1.5 shrink-0">
                 <Button
@@ -228,6 +255,7 @@ function DayView({
                   onClick={() => {
                     setReschedulingId(isRescheduling ? null : appt.id)
                     setNewTime(format(start, 'HH:mm'))
+                    setEditingPriceId(null)
                   }}
                 >
                   שנה שעה
@@ -243,6 +271,38 @@ function DayView({
                 </Button>
               </div>
             </div>
+
+            {isEditingPrice && (
+              <div className="mt-3 pt-3 border-t border-[#f5f5f7] flex items-center gap-2">
+                <span className="text-sm text-[#6e6e73]">₪</span>
+                <Input
+                  type="number"
+                  min="0"
+                  value={newPrice}
+                  onChange={(e) => setNewPrice(e.target.value)}
+                  placeholder="מחיר"
+                  className="h-9 rounded-xl border-[#e5e5e5] text-sm w-28"
+                  dir="ltr"
+                />
+                <Button
+                  size="sm"
+                  className="h-9 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold px-4"
+                  onClick={() => handlePriceSave(appt)}
+                  disabled={savingPrice}
+                >
+                  {savingPrice ? '…' : 'שמור'}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 rounded-xl text-[#6e6e73] text-xs"
+                  onClick={() => setEditingPriceId(null)}
+                >
+                  ביטול
+                </Button>
+              </div>
+            )}
+
             {isRescheduling && (
               <div className="mt-3 pt-3 border-t border-[#f5f5f7] flex items-center gap-2">
                 <Input

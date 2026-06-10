@@ -161,6 +161,67 @@ export const sendAppointmentReminders = onSchedule(
   }
 )
 
+const ADMIN_UIDS = [
+  'A0B3ZEXfcqhSquqQkoqZ0I6BRtD3',
+  'GL5yI9uYdJUReqLczdO0RWVIkdk1',
+  'xgEpG6IVB9TtBoTU3KIavIrfHSA3',
+  'znbtJJzpq8huSgDG5S5D24iKqYl1',
+  'Ha28aVcdNrV1C4kNg2rj64WS8yg1',
+  'JAv4EnqMyiWJKBByu7a2uQnXcTB2',
+]
+
+export const importInstagramPhoto = onCall(
+  { region: 'europe-west1' },
+  async (request) => {
+    if (!request.auth || !ADMIN_UIDS.includes(request.auth.uid)) {
+      throw new HttpsError('permission-denied', 'Admins only')
+    }
+
+    const { instagramUrl } = request.data as { instagramUrl: string }
+    const match = instagramUrl?.match(/instagram\.com\/(?:p|reel|tv)\/([A-Za-z0-9_-]+)/)
+    const code = match?.[1]
+    if (!code) throw new HttpsError('invalid-argument', 'קישור אינסטגרם לא תקין')
+
+    // Use Facebook's scraper UA — Instagram serves og:image to it for public posts
+    const pageResp = await fetch(`https://www.instagram.com/p/${code}/`, {
+      headers: {
+        'User-Agent': 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+        Accept: 'text/html,application/xhtml+xml',
+      },
+    })
+    if (!pageResp.ok) {
+      throw new HttpsError('not-found', `אינסטגרם החזיר ${pageResp.status} — ודאי שהפוסט ציבורי`)
+    }
+
+    const html = await pageResp.text()
+
+    // og:image can appear in either attribute order
+    const imgMatch =
+      html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/) ||
+      html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/)
+    if (!imgMatch) {
+      throw new HttpsError('not-found', 'לא נמצאה תמונה בפוסט — ייתכן שהוא פרטי')
+    }
+
+    const imageUrl = imgMatch[1].replace(/&amp;/g, '&')
+
+    // Download the image
+    const imgResp = await fetch(imageUrl)
+    if (!imgResp.ok) throw new HttpsError('internal', 'שגיאה בהורדת התמונה')
+    const buffer = Buffer.from(await imgResp.arrayBuffer())
+
+    // Re-upload to Firebase Storage so the URL is permanent
+    const bucket = admin.storage().bucket()
+    const storagePath = `gallery/instagram-${code}-${Date.now()}.jpg`
+    const fileRef = bucket.file(storagePath)
+    await fileRef.save(buffer, { contentType: 'image/jpeg' })
+    await fileRef.makePublic()
+    const url = fileRef.publicUrl()
+
+    return { url, storagePath }
+  }
+)
+
 export const listAuthUsers = onCall(
   { region: 'europe-west1', invoker: 'public' },
   async (request) => {
