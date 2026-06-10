@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Link } from 'react-router-dom'
 import { signOut } from 'firebase/auth'
 import { auth } from '@/firebase/config'
 import { useAuthStore } from '@/lib/store/authStore'
@@ -71,6 +71,12 @@ export default function Admin() {
             <span className="text-xs bg-sky-100 text-blue-700 font-semibold px-2 py-0.5 rounded-full mr-1">
               ניהול
             </span>
+            <Link
+              to="/"
+              className="text-xs text-[#6e6e73] bg-[#f5f5f7] hover:bg-[#e5e5e5] px-2.5 py-0.5 rounded-full transition-colors"
+            >
+              ממבט הלקוחה ↗
+            </Link>
           </div>
           <Button
             variant="ghost"
