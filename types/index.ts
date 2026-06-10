@@ -43,6 +43,18 @@ export interface BlockedDate {
   createdAt?: Timestamp
 }
 
+export type GalleryCategory = 'gel' | 'classic' | 'art' | 'acrylic'
+
+export interface GalleryItem {
+  id: string
+  url: string
+  label: string
+  category: GalleryCategory
+  storagePath: string
+  uploadedAt: Timestamp
+  order: number
+}
+
 export interface Service {
   id: string
   name: string

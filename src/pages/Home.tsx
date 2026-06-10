@@ -77,6 +77,25 @@ export default function Home() {
             קביעת תור עכשיו 💅
           </Link>
           <p className="mt-4 text-sm text-[#6e6e73]">ללא תשלום • לוקח פחות מדקה</p>
+
+          <Link
+            to="/gallery"
+            className="mt-6 inline-flex items-center gap-1.5 text-sm font-semibold text-blue-700 hover:text-blue-800 transition-colors"
+          >
+            ✨ צפי בגלריית העבודות שלנו
+          </Link>
+
+          <p className="mt-10 text-[11px] text-[#c7c7cc] leading-relaxed">
+            פותח ועוצב ע"י{' '}
+            <a
+              href="https://barpopko.com/card.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-600 font-semibold hover:underline"
+            >
+              בר פופקו
+            </a>
+          </p>
         </div>
       </div>
     </main>

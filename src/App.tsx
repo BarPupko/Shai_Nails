@@ -2,6 +2,7 @@ import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
 import Book from './pages/Book'
 import Admin from './pages/Admin'
+import Gallery from './pages/Gallery'
 
 export default function App() {
   return (
@@ -9,6 +10,7 @@ export default function App() {
       <Route path="/" element={<Home />} />
       <Route path="/book" element={<Book />} />
       <Route path="/admin" element={<Admin />} />
+      <Route path="/gallery" element={<Gallery />} />
     </Routes>
   )
 }

@@ -8,6 +8,7 @@ import { RevenueTab } from '@/components/admin/RevenueTab'
 import { ClientsTab } from '@/components/admin/ClientsTab'
 import { ServicesTab } from '@/components/admin/ServicesTab'
 import { AvailabilityTab } from '@/components/admin/AvailabilityTab'
+import { GalleryAdmin } from '@/components/gallery/GalleryAdmin'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ADMIN_UIDS } from '@/lib/constants'
 import { getAllAppointmentsAdmin } from '@/lib/firebase/appointments'
@@ -149,7 +150,7 @@ export default function Admin() {
         </div>
 
         <Tabs defaultValue="schedule" dir="rtl">
-          <TabsList className="w-full bg-white rounded-2xl shadow-sm border border-[#f0f0f0] p-1 mb-5 h-12 grid grid-cols-5">
+          <TabsList className="w-full bg-white rounded-2xl shadow-sm border border-[#f0f0f0] p-1 mb-5 h-12 grid grid-cols-6">
             <TabsTrigger value="schedule" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               📅 לוח
             </TabsTrigger>
@@ -164,6 +165,9 @@ export default function Admin() {
             </TabsTrigger>
             <TabsTrigger value="availability" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
               🗓 זמינות
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="rounded-xl text-xs font-medium data-[state=active]:bg-blue-700 data-[state=active]:text-white">
+              🖼 גלריה
             </TabsTrigger>
           </TabsList>
 
@@ -191,6 +195,10 @@ export default function Admin() {
 
           <TabsContent value="availability">
             <AvailabilityTab />
+          </TabsContent>
+
+          <TabsContent value="gallery">
+            <GalleryAdmin />
           </TabsContent>
         </Tabs>
       </div>

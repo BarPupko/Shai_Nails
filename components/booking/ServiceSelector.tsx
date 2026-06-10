@@ -1,8 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { getServices, formatDuration } from '@/lib/firebase/services'
-import type { Service } from '@/types'
+import { getGalleryItems } from '@/lib/firebase/gallery'
+import type { Service, GalleryItem } from '@/types'
 
 interface ServiceSelectorProps {
   onSelect: (service: Service) => void
@@ -11,6 +13,7 @@ interface ServiceSelectorProps {
 export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
+  const [galleryItems, setGalleryItems] = useState<GalleryItem[]>([])
 
   useEffect(() => {
     getServices()
@@ -19,6 +22,9 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
         setLoading(false)
       })
       .catch(() => setLoading(false))
+    getGalleryItems()
+      .then((items) => setGalleryItems(items.slice(0, 6)))
+      .catch(() => {})
   }, [])
 
   if (loading) {
@@ -43,6 +49,36 @@ export function ServiceSelector({ onSelect }: ServiceSelectorProps) {
 
   return (
     <div className="space-y-3">
+      {galleryItems.length > 0 && (
+        <div className="pb-1">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base font-semibold text-[#1d1d1f]">✨ הציצי בעבודות שלנו</h2>
+            <Link
+              to="/gallery"
+              className="text-xs font-semibold text-blue-700 hover:text-blue-800 transition-colors"
+            >
+              לכל הגלריה ←
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto pb-2 -mx-1 px-1">
+            {galleryItems.map((item) => (
+              <Link
+                key={item.id}
+                to="/gallery"
+                className="shrink-0 w-24 h-28 rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow relative"
+              >
+                <img src={item.url} alt={item.label} className="w-full h-full object-cover" />
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/55 to-transparent px-2 py-1.5">
+                  <span className="text-white text-[10px] font-semibold block text-right leading-tight">
+                    {item.label}
+                  </span>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       {services.map((svc) => (
         <button
           key={svc.id}

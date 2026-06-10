@@ -49,5 +49,11 @@ service cloud.firestore {
     match /otpCodes/{phone} {
       allow read, write: if false;
     }
+
+    // Gallery: public read (portfolio), admin-only write.
+    match /gallery/{itemId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
   }
 }

@@ -1,0 +1,26 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function isAdmin() {
+      return request.auth != null && request.auth.uid in [
+        "A0B3ZEXfcqhSquqQkoqZ0I6BRtD3",
+        "GL5yI9uYdJUReqLczdO0RWVIkdk1",
+        "xgEpG6IVB9TtBoTU3KIavIrfHSA3",
+        "znbtJJzpq8huSgDG5S5D24iKqYl1",
+        "Ha28aVcdNrV1C4kNg2rj64WS8yg1",
+        "JAv4EnqMyiWJKBByu7a2uQnXcTB2"
+      ];
+    }
+
+    // Gallery images: public read, admin-only write.
+    // Images are compressed client-side before upload (max 1200px, JPEG 0.82).
+    match /gallery/{filename} {
+      allow read: if true;
+      allow write: if isAdmin()
+        && request.resource.size < 5 * 1024 * 1024   // 5 MB hard cap
+        && request.resource.contentType.matches('image/.*');
+      allow delete: if isAdmin();
+    }
+  }
+}
