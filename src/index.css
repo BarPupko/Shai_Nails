@@ -41,4 +41,24 @@
   .glass-card {
     @apply bg-white rounded-2xl shadow-sm border border-white/60;
   }
+
+  /* Blue dot on calendar days that have active appointments */
+  .day-has-appointment {
+    position: relative;
+  }
+  .day-has-appointment::after {
+    content: '';
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 5px;
+    height: 5px;
+    border-radius: 9999px;
+    background-color: #3b82f6;
+    pointer-events: none;
+  }
+  .day-has-appointment[data-selected-single='true']::after {
+    background-color: white;
+  }
 }

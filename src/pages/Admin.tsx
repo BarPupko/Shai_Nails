@@ -200,7 +200,7 @@ export default function Admin() {
           </TabsContent>
 
           <TabsContent value="availability">
-            <AvailabilityTab />
+            <AvailabilityTab appointments={appointments} />
           </TabsContent>
 
           <TabsContent value="gallery">
