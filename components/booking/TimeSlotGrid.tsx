@@ -24,7 +24,7 @@ function generateSlots(
   const slots: Date[] = []
   const startMin = hours.start * 60
   const endMin = hours.end * 60
-  for (let min = startMin; min + serviceMinutes <= endMin; min += SLOT_STEP_MINUTES) {
+  for (let min = startMin; min <= endMin; min += SLOT_STEP_MINUTES) {
     const slot = new Date(date)
     slot.setHours(Math.floor(min / 60), min % 60, 0, 0)
     slots.push(slot)
