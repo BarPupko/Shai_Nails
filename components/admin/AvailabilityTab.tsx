@@ -28,7 +28,14 @@ const DAY_NAMES: Record<string, string> = {
   '6': 'שבת',
 }
 
-const HOURS = Array.from({ length: 16 }, (_, i) => i + 7) // 7–22
+// 7:00 – 22:00 in 15-minute steps: [7, 7.25, 7.5, 7.75, 8, ...]
+const HOURS = Array.from({ length: 61 }, (_, i) => (7 * 60 + i * 15) / 60)
+
+function formatHour(h: number): string {
+  const hrs = Math.floor(h)
+  const mins = Math.round((h - hrs) * 60)
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
 
 export function AvailabilityTab() {
   const [schedule, setSchedule] = useState<WeeklySchedule | null>(null)
@@ -83,7 +90,7 @@ export function AvailabilityTab() {
         date: dateStr,
         type: overrideType,
         ...(overrideType === 'custom_hours'
-          ? { start: parseInt(overrideStart), end: parseInt(overrideEnd) }
+          ? { start: parseFloat(overrideStart), end: parseFloat(overrideEnd) }
           : {}),
         ...(overrideReason.trim() ? { reason: overrideReason.trim() } : {}),
       })
@@ -163,7 +170,7 @@ export function AvailabilityTab() {
                     <div className="flex items-center gap-1.5 flex-1 min-w-0">
                       <Select
                         value={String(day.start ?? BUSINESS_HOURS.start)}
-                        onValueChange={(v) => updateDay(dayKey, { start: parseInt(v) })}
+                        onValueChange={(v) => updateDay(dayKey, { start: parseFloat(v) })}
                       >
                         <SelectTrigger className="h-8 w-[72px] text-xs rounded-xl border-[#e5e5e5]">
                           <SelectValue />
@@ -171,7 +178,7 @@ export function AvailabilityTab() {
                         <SelectContent>
                           {HOURS.map((h) => (
                             <SelectItem key={h} value={String(h)}>
-                              {String(h).padStart(2, '0')}:00
+                              {formatHour(h)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -179,7 +186,7 @@ export function AvailabilityTab() {
                       <span className="text-xs text-[#6e6e73]">עד</span>
                       <Select
                         value={String(day.end ?? BUSINESS_HOURS.end)}
-                        onValueChange={(v) => updateDay(dayKey, { end: parseInt(v) })}
+                        onValueChange={(v) => updateDay(dayKey, { end: parseFloat(v) })}
                       >
                         <SelectTrigger className="h-8 w-[72px] text-xs rounded-xl border-[#e5e5e5]">
                           <SelectValue />
@@ -187,7 +194,7 @@ export function AvailabilityTab() {
                         <SelectContent>
                           {HOURS.map((h) => (
                             <SelectItem key={h} value={String(h)}>
-                              {String(h).padStart(2, '0')}:00
+                              {formatHour(h)}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -260,7 +267,7 @@ export function AvailabilityTab() {
                   <SelectContent>
                     {HOURS.map((h) => (
                       <SelectItem key={h} value={String(h)}>
-                        {String(h).padStart(2, '0')}:00
+                        {formatHour(h)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -273,7 +280,7 @@ export function AvailabilityTab() {
                   <SelectContent>
                     {HOURS.map((h) => (
                       <SelectItem key={h} value={String(h)}>
-                        {String(h).padStart(2, '0')}:00
+                        {formatHour(h)}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -334,7 +341,7 @@ export function AvailabilityTab() {
                     <p className="text-xs text-[#6e6e73] mt-0.5">
                       {b.type === 'closed'
                         ? '🔴 סגור לחלוטין'
-                        : `🟡 שעות: ${String(b.start).padStart(2, '0')}:00 – ${String(b.end).padStart(2, '0')}:00`}
+                        : `🟡 שעות: ${b.start != null ? formatHour(b.start) : '?'} – ${b.end != null ? formatHour(b.end) : '?'}`}
                       {b.reason ? ` · ${b.reason}` : ''}
                     </p>
                   </div>
