@@ -13,3 +13,6 @@ export const ADMIN_UIDS: string[] = (process.env.NEXT_PUBLIC_ADMIN_UIDS ?? '')
 
 // Price per appointment in NIS — change via NEXT_PUBLIC_SERVICE_PRICE env var
 export const SERVICE_PRICE_NIS = Number(process.env.NEXT_PUBLIC_SERVICE_PRICE ?? '150')
+
+// Salon owner contact number shown to customers who try to cancel within 24h
+export const OWNER_PHONE = '055-666-8093'

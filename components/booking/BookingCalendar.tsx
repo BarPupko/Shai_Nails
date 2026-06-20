@@ -21,6 +21,7 @@ import {
   getEffectiveHours,
 } from '@/lib/firebase/availability'
 import { useAuthStore } from '@/lib/store/authStore'
+import { OWNER_PHONE } from '@/lib/constants'
 import type { Appointment, Service, WeeklySchedule, BlockedDate } from '@/types'
 
 interface BookingCalendarProps {
@@ -139,6 +140,9 @@ export function BookingCalendar({ userName, service }: BookingCalendarProps) {
       ? getEffectiveHours(selectedDate, weeklySchedule, blockedDates)
       : undefined
 
+  const isWithin24h = !!existingAppointment &&
+    (existingAppointment.startTime as Timestamp).toDate().getTime() - Date.now() < 24 * 60 * 60 * 1000
+
   function isDateDisabled(date: Date): boolean {
     if (isBefore(startOfDay(date), startOfDay(new Date()))) return true
     if (weeklySchedule) {
@@ -167,15 +171,29 @@ export function BookingCalendar({ userName, service }: BookingCalendarProps) {
               {existingAppointment.serviceName && (
                 <p className="text-[#6e6e73] text-xs mt-0.5">{existingAppointment.serviceName}</p>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="mt-2 h-8 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 -mr-2"
-                onClick={handleCancelExisting}
-                disabled={cancelLoading}
-              >
-                {cancelLoading ? 'מבטל…' : 'ביטול התור'}
-              </Button>
+              {isWithin24h ? (
+                <div className="mt-2 space-y-1.5">
+                  <p className="text-xs font-medium text-rose-600">
+                    לא ניתן לבטל תוך 24 שעות מהתור
+                  </p>
+                  <a
+                    href={`tel:${OWNER_PHONE}`}
+                    className="inline-flex items-center gap-1.5 text-xs font-semibold text-rose-600 bg-rose-50 border border-rose-100 px-3 py-1.5 rounded-xl hover:bg-rose-100 transition-colors"
+                  >
+                    📞 לביטול, צרי קשר עם שי: {OWNER_PHONE}
+                  </a>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-2 h-8 text-xs text-amber-600 hover:text-amber-700 hover:bg-amber-50 px-2 -mr-2"
+                  onClick={handleCancelExisting}
+                  disabled={cancelLoading}
+                >
+                  {cancelLoading ? 'מבטל…' : 'ביטול התור'}
+                </Button>
+              )}
             </div>
           </div>
         </div>
