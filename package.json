@@ -30,6 +30,10 @@
     "tailwind-merge": "^2.5.4",
     "zustand": "^4.5.4"
   },
+  "overrides": {
+    "undici": ">=6.27.0",
+    "protobufjs": ">=7.6.3"
+  },
   "devDependencies": {
     "@types/node": "^20",
     "@types/react": "^19",
