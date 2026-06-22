@@ -45,6 +45,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
   const [editName, setEditName] = useState('')
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [search, setSearch] = useState('')
 
   useEffect(() => {
     Promise.all([
@@ -110,6 +111,16 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
     return Object.values(map).sort((a, b) => b.totalBookings - a.totalBookings)
   }, [appointments, users])
 
+  const filteredClients = useMemo(() => {
+    const q = search.trim().toLowerCase().replace(/[-\s]/g, '')
+    if (!q) return clients
+    return clients.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        c.phoneNumber.replace(/[-\s]/g, '').includes(q)
+    )
+  }, [clients, search])
+
   // All appointments for a given user, sorted newest first
   const appointmentsForUser = (userId: string): Appointment[] =>
     appointments
@@ -147,8 +158,29 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
 
   return (
     <div className="space-y-3">
-      <p className="text-sm text-[#6e6e73] px-1">{clients.length} לקוחות רשומים</p>
-      {clients.map((client) => {
+      <div className="relative">
+        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[#c7c7cc] text-base pointer-events-none">🔍</span>
+        <Input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="חיפוש לפי שם או טלפון…"
+          className="w-full h-11 pr-10 rounded-2xl border-[#e5e5e5] bg-white text-sm text-[#1d1d1f] placeholder-[#c7c7cc] focus:border-blue-400"
+        />
+      </div>
+      <p className="text-sm text-[#6e6e73] px-1">
+        {search.trim()
+          ? `${filteredClients.length} מתוך ${clients.length} לקוחות`
+          : `${clients.length} לקוחות רשומים`}
+      </p>
+      {filteredClients.length === 0 && (
+        <div className="bg-white rounded-3xl shadow-sm border border-[#f0f0f0] py-12 text-center">
+          <p className="text-3xl mb-2">🔍</p>
+          <p className="font-semibold text-[#1d1d1f]">לא נמצאו תוצאות</p>
+          <p className="text-sm text-[#6e6e73] mt-1">נסי חיפוש אחר</p>
+        </div>
+      )}
+      {filteredClients.map((client) => {
         const isEditing = editingId === client.userId
         const isExpanded = expandedId === client.userId
         const clientAppts = isExpanded ? appointmentsForUser(client.userId) : []
