@@ -9,6 +9,7 @@ import { ClientsTab } from '@/components/admin/ClientsTab'
 import { ServicesTab } from '@/components/admin/ServicesTab'
 import { AvailabilityTab } from '@/components/admin/AvailabilityTab'
 import { GalleryAdmin } from '@/components/gallery/GalleryAdmin'
+import { AddAppointmentDialog } from '@/components/admin/AddAppointmentDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ADMIN_UIDS } from '@/lib/constants'
 import { getAllAppointmentsAdmin } from '@/lib/firebase/appointments'
@@ -25,6 +26,7 @@ export default function Admin() {
 
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [dataLoading, setDataLoading] = useState(true)
+  const [addDialogOpen, setAddDialogOpen] = useState(false)
 
   const fetchAll = useCallback(async () => {
     setDataLoading(true)
@@ -98,15 +100,24 @@ export default function Admin() {
                 {dataLoading ? 'טוען נתונים…' : `${appointments.filter(a => a.status === 'active').length} הזמנות פעילות`}
               </p>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-9 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5 shrink-0"
-              onClick={fetchAll}
-              disabled={dataLoading}
-            >
-              {dataLoading ? '…' : '🔄 סנכרן תורים'}
-            </Button>
+            <div className="flex items-center gap-2 shrink-0">
+              <Button
+                size="sm"
+                className="h-9 rounded-xl bg-blue-700 hover:bg-blue-800 text-white text-xs font-medium gap-1.5"
+                onClick={() => setAddDialogOpen(true)}
+              >
+                + הוסף תור
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-9 rounded-xl border-[#e5e5e5] text-xs font-medium gap-1.5"
+                onClick={fetchAll}
+                disabled={dataLoading}
+              >
+                {dataLoading ? '…' : '🔄 סנכרן'}
+              </Button>
+            </div>
           </div>
           <div className="flex gap-2">
             <Button
@@ -208,6 +219,12 @@ export default function Admin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <AddAppointmentDialog
+        open={addDialogOpen}
+        onOpenChange={setAddDialogOpen}
+        onCreated={fetchAll}
+      />
     </main>
   )
 }

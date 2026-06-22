@@ -114,6 +114,30 @@ export async function getAllUpcomingAppointments(): Promise<Appointment[]> {
   return snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Appointment))
 }
 
+export async function adminCreateAppointment(
+  phoneNumber: string,
+  name: string,
+  startTime: Date,
+  service: { id: string; name: string; durationMinutes: number; price: number | null }
+): Promise<string> {
+  const userId = `phone_${phoneNumber.replace(/\D/g, '')}`
+  const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000)
+  const docRef = await addDoc(collection(db, 'appointments'), {
+    userId,
+    phoneNumber,
+    name,
+    serviceId: service.id,
+    serviceName: service.name,
+    durationMinutes: service.durationMinutes,
+    price: service.price,
+    startTime: Timestamp.fromDate(startTime),
+    endTime: Timestamp.fromDate(endTime),
+    status: 'active',
+    createdAt: Timestamp.now(),
+  })
+  return docRef.id
+}
+
 export async function getAllAppointmentsAdmin(): Promise<Appointment[]> {
   const q = query(collection(db, 'appointments'), orderBy('startTime', 'desc'))
   const snapshot = await getDocs(q)
