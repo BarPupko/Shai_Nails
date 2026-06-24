@@ -1,16 +1,34 @@
 'use client'
 
 import { useMemo, useEffect, useState } from 'react'
-import { format } from 'date-fns'
+import { format, isBefore, startOfDay } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { httpsCallable } from 'firebase/functions'
-import { doc, setDoc, getDocs, collection, Timestamp } from 'firebase/firestore'
+import { doc, setDoc, getDocs, deleteDoc, updateDoc, collection, Timestamp } from 'firebase/firestore'
 import { functions, db } from '@/firebase/config'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Calendar } from '@/components/ui/calendar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { rescheduleAppointment } from '@/lib/firebase/appointments'
 import type { Appointment } from '@/types'
 
 const listAuthUsersFn = httpsCallable<void, { uid: string; phoneNumber: string; createdAt: string; lastSignInAt: string }[]>(functions, 'listAuthUsers')
+
+const HOURS = Array.from({ length: 61 }, (_, i) => (7 * 60 + i * 15) / 60)
+
+function formatHour(h: number): string {
+  const hrs = Math.floor(h)
+  const mins = Math.round((h - hrs) * 60)
+  return `${String(hrs).padStart(2, '0')}:${String(mins).padStart(2, '0')}`
+}
+
+function formatWhatsAppNumber(phone: string): string {
+  const digits = phone.replace(/\D/g, '')
+  if (digits.startsWith('0')) return `972${digits.slice(1)}`
+  return digits
+}
 
 interface UserRecord {
   uid: string
@@ -21,6 +39,7 @@ interface UserRecord {
 
 interface ClientsTabProps {
   appointments: Appointment[]
+  onRefresh: () => void
 }
 
 interface ClientSummary {
@@ -39,13 +58,20 @@ function buildWhatsAppURL(phone: string, name: string): string {
   return `https://wa.me/${e164}?text=${msg}`
 }
 
-export function ClientsTab({ appointments }: ClientsTabProps) {
+export function ClientsTab({ appointments, onRefresh }: ClientsTabProps) {
   const [users, setUsers] = useState<UserRecord[]>([])
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [saving, setSaving] = useState(false)
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  const [reschedulingAppt, setReschedulingAppt] = useState<Appointment | null>(null)
+  const [rescheduleDate, setRescheduleDate] = useState<Date | undefined>()
+  const [rescheduleHour, setRescheduleHour] = useState('9')
+  const [rescheduleLoading, setRescheduleLoading] = useState(false)
+  const [rescheduleSuccess, setRescheduleSuccess] = useState<Date | null>(null)
 
   useEffect(() => {
     Promise.all([
@@ -67,7 +93,6 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
 
   const clients = useMemo<ClientSummary[]>(() => {
     const map: Record<string, ClientSummary> = {}
-    // UIDs that have an admin-saved name override — these must not be clobbered by appt.name
     const savedNameUids = new Set(users.filter((u) => !!u.savedName).map((u) => u.uid))
 
     for (const u of users) {
@@ -100,7 +125,6 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
       if (appt.status === 'active') c.activeBookings++
       const d = (appt.startTime as Timestamp).toDate()
       if (d > c.lastDate) { c.lastDate = d }
-      // Only use the appointment's name if the admin hasn't set a saved name override
       if (appt.name && !savedNameUids.has(appt.userId)) {
         c.name = appt.name
         c.hasRealName = true
@@ -121,7 +145,6 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
     )
   }, [clients, search])
 
-  // All appointments for a given user, sorted newest first
   const appointmentsForUser = (userId: string): Appointment[] =>
     appointments
       .filter((a) => a.userId === userId)
@@ -145,6 +168,65 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleDeleteUser(userId: string, name: string) {
+    if (!confirm(`למחוק את ${name}?\nכל התורים הפעילים שלה יבוטלו.`)) return
+    setDeletingId(userId)
+    try {
+      const futureAppts = appointments.filter(
+        (a) => a.userId === userId && a.status === 'active' && (a.startTime as Timestamp).toDate() > new Date()
+      )
+      await Promise.all(
+        futureAppts.map((a) => updateDoc(doc(db, 'appointments', a.id!), { status: 'cancelled' }))
+      )
+      await deleteDoc(doc(db, 'users', userId))
+      setUsers((prev) => prev.filter((u) => u.uid !== userId))
+      onRefresh()
+    } catch (err) {
+      console.error('delete user failed', err)
+      alert('שגיאה במחיקת הלקוחה')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function handleCancelAppointment(apptId: string) {
+    if (!confirm('לבטל את התור?')) return
+    try {
+      await updateDoc(doc(db, 'appointments', apptId), { status: 'cancelled' })
+      onRefresh()
+    } catch (err) {
+      console.error('cancel appt failed', err)
+      alert('שגיאה בביטול התור')
+    }
+  }
+
+  async function handleReschedule() {
+    if (!reschedulingAppt || !rescheduleDate) return
+    setRescheduleLoading(true)
+    try {
+      const h = parseFloat(rescheduleHour)
+      const hrs = Math.floor(h)
+      const mins = Math.round((h - hrs) * 60)
+      const newStart = new Date(rescheduleDate)
+      newStart.setHours(hrs, mins, 0, 0)
+      await rescheduleAppointment(reschedulingAppt.id, newStart, reschedulingAppt.durationMinutes ?? 60)
+      setRescheduleSuccess(newStart)
+      onRefresh()
+    } catch (err) {
+      console.error('reschedule failed', err)
+      alert('שגיאה בשינוי התור')
+    } finally {
+      setRescheduleLoading(false)
+    }
+  }
+
+  function handleCloseReschedule() {
+    setReschedulingAppt(null)
+    setRescheduleDate(undefined)
+    setRescheduleHour('9')
+    setRescheduleSuccess(null)
   }
 
   if (clients.length === 0) {
@@ -184,6 +266,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
         const isEditing = editingId === client.userId
         const isExpanded = expandedId === client.userId
         const clientAppts = isExpanded ? appointmentsForUser(client.userId) : []
+        const isDeleting = deletingId === client.userId
 
         return (
           <div
@@ -257,6 +340,15 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
                 >
                   WA
                 </a>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteUser(client.userId, client.name)}
+                  disabled={isDeleting}
+                  className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center text-red-400 hover:bg-red-100 transition-colors disabled:opacity-50"
+                  title="מחק לקוחה"
+                >
+                  🗑️
+                </button>
               </div>
             </div>
 
@@ -301,6 +393,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
                     {clientAppts.map((appt) => {
                       const date = (appt.startTime as Timestamp).toDate()
                       const isPast = date < new Date()
+                      const isFutureActive = appt.status === 'active' && !isPast
                       return (
                         <div
                           key={appt.id}
@@ -315,7 +408,7 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
                               {appt.serviceName ? ` · ${appt.serviceName}` : ''}
                             </p>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0">
                             {appt.price != null && (
                               <span className="text-xs font-semibold text-emerald-600">₪{appt.price}</span>
                             )}
@@ -330,6 +423,27 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
                             >
                               {appt.status === 'cancelled' ? 'בוטל' : isPast ? 'הושלם' : 'פעיל'}
                             </span>
+                            {isFutureActive && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setReschedulingAppt(appt)
+                                    setRescheduleHour(String(date.getHours() + date.getMinutes() / 60))
+                                  }}
+                                  className="text-[10px] text-blue-500 border border-blue-200 rounded-full px-2 py-0.5 hover:bg-blue-50 transition-colors"
+                                >
+                                  שנה
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleCancelAppointment(appt.id!)}
+                                  className="text-[10px] text-red-400 border border-red-200 rounded-full px-2 py-0.5 hover:bg-red-50 transition-colors"
+                                >
+                                  בטל
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       )
@@ -341,6 +455,80 @@ export function ClientsTab({ appointments }: ClientsTabProps) {
           </div>
         )
       })}
+
+      {/* Reschedule dialog */}
+      <Dialog open={!!reschedulingAppt} onOpenChange={(open) => { if (!open) handleCloseReschedule() }}>
+        <DialogContent dir="rtl" className="max-w-sm rounded-3xl">
+          <DialogHeader>
+            <DialogTitle className="text-right text-base">
+              שינוי תור — {reschedulingAppt?.name}
+            </DialogTitle>
+            <DialogDescription className="sr-only">בחר תאריך ושעה חדשים לתור</DialogDescription>
+          </DialogHeader>
+
+          {rescheduleSuccess ? (
+            <div className="space-y-3 pb-1">
+              <div className="bg-emerald-50 border border-emerald-100 rounded-2xl p-4 text-center">
+                <p className="text-2xl mb-1">✅</p>
+                <p className="font-semibold text-emerald-800 text-sm">התור שונה בהצלחה!</p>
+                <p className="text-sm text-emerald-700 mt-1">
+                  {format(rescheduleSuccess, 'EEEE, d בMMMM', { locale: he })} · {format(rescheduleSuccess, 'HH:mm')}
+                </p>
+              </div>
+              <a
+                href={`https://wa.me/${formatWhatsAppNumber(reschedulingAppt?.phoneNumber ?? '')}?text=${encodeURIComponent(
+                  `שלום ${reschedulingAppt?.name}, התור שלך${reschedulingAppt?.serviceName ? ` עבור ${reschedulingAppt.serviceName}` : ''} שונה ל${format(rescheduleSuccess, 'EEEE d בMMMM', { locale: he })} בשעה ${format(rescheduleSuccess, 'HH:mm')}. מחכים לך 💅`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-2 w-full h-11 bg-[#25D366] hover:bg-[#1fb956] text-white font-semibold rounded-2xl transition-colors text-sm"
+              >
+                💬 שלח הודעת וואטסאפ
+              </a>
+              <Button variant="outline" className="w-full rounded-2xl" onClick={handleCloseReschedule}>
+                סגור
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4 pb-1">
+              <div>
+                <p className="text-xs text-[#6e6e73] mb-2 text-right">בחרי תאריך חדש</p>
+                <div className="border border-[#f0f0f0] rounded-2xl overflow-hidden">
+                  <Calendar
+                    mode="single"
+                    selected={rescheduleDate}
+                    onSelect={setRescheduleDate}
+                    disabled={(date) => isBefore(startOfDay(date), startOfDay(new Date()))}
+                    className="w-full"
+                  />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs text-[#6e6e73] mb-2 text-right">בחרי שעה</p>
+                <Select value={rescheduleHour} onValueChange={setRescheduleHour}>
+                  <SelectTrigger className="h-10 rounded-xl border-[#e5e5e5]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {HOURS.map((h) => (
+                      <SelectItem key={h} value={String(h)}>
+                        {formatHour(h)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                className="w-full h-11 rounded-2xl bg-blue-600 hover:bg-blue-700 font-semibold"
+                onClick={handleReschedule}
+                disabled={!rescheduleDate || rescheduleLoading}
+              >
+                {rescheduleLoading ? 'שומר…' : 'שמור שינוי'}
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

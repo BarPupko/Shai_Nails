@@ -202,7 +202,7 @@ export default function Admin() {
 
           <TabsContent value="clients">
             {dataLoading ? skeleton3 : (
-              <ClientsTab appointments={appointments} />
+              <ClientsTab appointments={appointments} onRefresh={fetchAll} />
             )}
           </TabsContent>
 
