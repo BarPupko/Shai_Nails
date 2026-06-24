@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { format, addMonths } from 'date-fns'
 import { he } from 'date-fns/locale'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { TimeSlotGrid } from '@/components/booking/TimeSlotGrid'
@@ -127,6 +127,7 @@ export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppoi
       >
         <DialogHeader>
           <DialogTitle className="text-right text-[#1d1d1f]">הוספת תור ידנית</DialogTitle>
+          <DialogDescription className="sr-only">טופס הוספת תור עבור לקוח</DialogDescription>
         </DialogHeader>
 
         <div className="space-y-5 pt-1">

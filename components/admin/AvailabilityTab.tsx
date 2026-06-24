@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { format, isBefore, startOfDay } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { Calendar } from '@/components/ui/calendar'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -513,6 +513,7 @@ export function AvailabilityTab({ appointments }: AvailabilityTabProps) {
             <DialogTitle className="text-right text-base">
               שינוי תור — {reschedulingAppt?.name}
             </DialogTitle>
+            <DialogDescription className="sr-only">בחר תאריך ושעה חדשים לתור</DialogDescription>
           </DialogHeader>
 
           {rescheduleSuccess ? (
