@@ -35,9 +35,9 @@ export function RevenueTab({ appointments }: RevenueTabProps) {
     const upcoming = future.reduce((sum, a) => sum + apptPrice(a), 0)
     const avgPrice = past.length > 0 ? Math.round(earned / past.length) : 0
 
-    // Monthly breakdown (past only)
+    // Monthly breakdown (all active)
     const monthMap: Record<string, { count: number; income: number }> = {}
-    for (const appt of past) {
+    for (const appt of active) {
       const key = format((appt.startTime as Timestamp).toDate(), 'yyyy-MM')
       if (!monthMap[key]) monthMap[key] = { count: 0, income: 0 }
       monthMap[key].count++
@@ -86,11 +86,11 @@ export function RevenueTab({ appointments }: RevenueTabProps) {
       .sort((a, b) => b.count - a.count)
       .slice(0, 5)
 
-    // Day of week (past only)
+    // Day of week (all active)
     const dayCount: Record<number, number> = Object.fromEntries(
       Array.from({ length: 7 }, (_, i) => [i, 0])
     )
-    for (const appt of past) {
+    for (const appt of active) {
       dayCount[(appt.startTime as Timestamp).toDate().getDay()]++
     }
 
@@ -245,7 +245,7 @@ export function RevenueTab({ appointments }: RevenueTabProps) {
       )}
 
       {/* Busiest days of week */}
-      {stats.pastCount > 0 && (
+      {appointments.some((a) => a.status === 'active') && (
         <div className="bg-white rounded-3xl p-5 shadow-sm border border-[#f0f0f0]">
           <p className="text-sm font-semibold text-[#1d1d1f] mb-4">ימים עמוסים</p>
           <div className="space-y-2.5">
