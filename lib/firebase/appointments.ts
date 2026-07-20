@@ -118,9 +118,10 @@ export async function adminCreateAppointment(
   phoneNumber: string,
   name: string,
   startTime: Date,
-  service: { id: string; name: string; durationMinutes: number; price: number | null }
+  service: { id: string; name: string; durationMinutes: number; price: number | null },
+  existingUserId?: string
 ): Promise<string> {
-  const userId = `phone_${phoneNumber.replace(/\D/g, '')}`
+  const userId = existingUserId || `phone_${phoneNumber.replace(/\D/g, '')}`
   const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000)
   const docRef = await addDoc(collection(db, 'appointments'), {
     userId,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { format, addMonths } from 'date-fns'
 import { he } from 'date-fns/locale'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -7,22 +7,27 @@ import { Calendar } from '@/components/ui/calendar'
 import { TimeSlotGrid } from '@/components/booking/TimeSlotGrid'
 import { getServices } from '@/lib/firebase/services'
 import { getBookedSlots, adminCreateAppointment } from '@/lib/firebase/appointments'
+import { fetchClientDirectory, type ClientRecord } from '@/lib/firebase/clients'
 import {
   getWeeklySchedule,
   getBlockedDatesForRange,
   getEffectiveHours,
 } from '@/lib/firebase/availability'
-import type { Service, WeeklySchedule, BlockedDate } from '@/types'
+import type { Service, WeeklySchedule, BlockedDate, Appointment } from '@/types'
 
 interface AddAppointmentDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated: () => void
+  appointments: Appointment[]
 }
 
-export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppointmentDialogProps) {
+export function AddAppointmentDialog({ open, onOpenChange, onCreated, appointments }: AddAppointmentDialogProps) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
+  const [clientDirectory, setClientDirectory] = useState<ClientRecord[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null)
+  const [showSuggestions, setShowSuggestions] = useState(false)
   const [services, setServices] = useState<Service[]>([])
   const [selectedServiceId, setSelectedServiceId] = useState('')
   const [selectedDate, setSelectedDate] = useState<Date>(new Date())
@@ -49,7 +54,25 @@ export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppoi
       setBlockedDates(blocked)
       setAvailLoading(false)
     })
-  }, [open])
+    fetchClientDirectory(appointments)
+      .then(setClientDirectory)
+      .catch(() => setClientDirectory([]))
+  }, [open, appointments])
+
+  const suggestions = useMemo(() => {
+    const q = name.trim().toLowerCase()
+    if (!q || selectedClientId) return []
+    return clientDirectory
+      .filter((c) => c.hasRealName && c.name.toLowerCase().includes(q))
+      .slice(0, 5)
+  }, [name, clientDirectory, selectedClientId])
+
+  function selectClient(client: ClientRecord) {
+    setName(client.name)
+    setPhone(client.phoneNumber)
+    setSelectedClientId(client.userId)
+    setShowSuggestions(false)
+  }
 
   const fetchSlots = useCallback(async (date: Date) => {
     setSlotsLoading(true)
@@ -81,6 +104,8 @@ export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppoi
   function handleClose() {
     setName('')
     setPhone('')
+    setSelectedClientId(null)
+    setShowSuggestions(false)
     setSelectedServiceId('')
     setSelectedDate(new Date())
     setSelectedSlot(null)
@@ -95,12 +120,18 @@ export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppoi
     setSubmitting(true)
     setError('')
     try {
-      await adminCreateAppointment(phone.trim(), name.trim(), selectedSlot, {
-        id: service.id,
-        name: service.name,
-        durationMinutes: service.durationMinutes,
-        price: service.price,
-      })
+      await adminCreateAppointment(
+        phone.trim(),
+        name.trim(),
+        selectedSlot,
+        {
+          id: service.id,
+          name: service.name,
+          durationMinutes: service.durationMinutes,
+          price: service.price,
+        },
+        selectedClientId ?? undefined
+      )
       onCreated()
       handleClose()
     } catch {
@@ -133,22 +164,51 @@ export function AddAppointmentDialog({ open, onOpenChange, onCreated }: AddAppoi
         <div className="space-y-5 pt-1">
           {/* Customer info */}
           <div className="space-y-3">
-            <div>
+            <div className="relative">
               <label className="block text-xs font-semibold text-[#6e6e73] mb-1.5">שם הלקוחה</label>
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setSelectedClientId(null)
+                  setShowSuggestions(true)
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setShowSuggestions(false)}
                 placeholder="שם מלא"
+                autoComplete="off"
                 className="w-full h-11 px-4 rounded-2xl border border-[#e5e5e5] bg-white text-sm text-[#1d1d1f] placeholder-[#c7c7cc] focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"
               />
+              {showSuggestions && suggestions.length > 0 && (
+                <div className="absolute z-20 top-full inset-x-0 mt-1 bg-white rounded-2xl border border-[#e5e5e5] shadow-lg overflow-hidden">
+                  {suggestions.map((client) => (
+                    <button
+                      key={client.userId}
+                      type="button"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => selectClient(client)}
+                      className="w-full text-right px-4 py-2.5 hover:bg-[#f5f5f7] transition-colors flex items-center justify-between gap-2 border-b border-[#f5f5f7] last:border-b-0"
+                    >
+                      <span className="text-sm font-medium text-[#1d1d1f]">{client.name}</span>
+                      <span className="text-xs text-[#6e6e73]" dir="ltr">{client.phoneNumber}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {selectedClientId && (
+                <p className="mt-1 text-[11px] font-medium text-emerald-600">✓ לקוחה קיימת — הפרטים מולאו אוטומטית</p>
+              )}
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#6e6e73] mb-1.5">מספר טלפון</label>
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => {
+                  setPhone(e.target.value)
+                  setSelectedClientId(null)
+                }}
                 placeholder="050-0000000"
                 dir="ltr"
                 className="w-full h-11 px-4 rounded-2xl border border-[#e5e5e5] bg-white text-sm text-[#1d1d1f] placeholder-[#c7c7cc] focus:outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-100"

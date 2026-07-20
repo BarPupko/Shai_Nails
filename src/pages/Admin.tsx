@@ -224,6 +224,7 @@ export default function Admin() {
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         onCreated={fetchAll}
+        appointments={appointments}
       />
     </main>
   )
